@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HR Analytics &amp; Workforce Management Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --text:#1e293b; --muted:#64748b; --faint:#94a3b8; --border:#e6e9f2;
+  --primary:#4f46e5; --primary-600:#4338ca; --primary-soft:#eef0ff;
+  --green:#10b981; --green-soft:#e7f8f1; --amber:#f59e0b; --amber-soft:#fef5e1;
+  --rose:#f43f5e; --rose-soft:#ffeaee; --sky:#0ea5e9; --sky-soft:#e5f5fd; --violet:#8b5cf6; --violet-soft:#f1ecff;
+  --slate-soft:#eef1f6;
+  --radius:14px; --shadow:0 1px 2px rgba(15,23,42,.04),0 4px 14px rgba(15,23,42,.05);
+  --sidebar-w:248px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 14px;z-index:40}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px}
+.brand-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:grid;place-items:center;box-shadow:0 6px 14px rgba(79,70,229,.35)}
+.brand strong{display:block;font-size:15px;letter-spacing:-.01em}
+.brand small{display:block;color:var(--muted);font-size:11.5px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);padding:0 10px 8px;font-weight:600}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#475569;text-decoration:none;font-weight:500;transition:background .15s,color .15s}
+.nav a:hover{background:var(--slate-soft);color:var(--text)}
+.nav a.active{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.nav-sep{height:1px;background:var(--border);margin:14px 6px}
+.sidebar-foot{margin-top:auto;padding:12px;border-radius:12px;background:var(--slate-soft);font-size:12px;color:var(--muted)}
+.sidebar-foot b{display:block;color:var(--text);font-size:12.5px;margin-bottom:2px}
+.scrim{display:none}
+
+.main{min-width:0;padding:22px 28px 40px}
+.topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.title-block{flex:1;min-width:220px}
+.title-block h1{font-size:22px;letter-spacing:-.02em;font-weight:700}
+.title-block p{color:var(--muted);margin-top:2px;font-size:13px}
+.top-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.updated{display:flex;flex-direction:column;line-height:1.25;text-align:right}
+.updated span{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.updated strong{font-size:12.5px;font-weight:600}
+.icon-btn{display:none;width:40px;height:40px;border:1px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;place-items:center}
+
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:hover{border-color:#cbd2e1;background:#fafbff}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.28)}
+.btn.primary:hover{background:var(--primary-600)}
+.btn.ghost{background:transparent}
+.btn.danger{color:#be123c}
+.btn:disabled{opacity:.6;cursor:progress}
+.btn.loading svg{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:600;background:var(--slate-soft);color:var(--muted)}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--green-soft);color:#047857}
+.pill.warn{background:var(--amber-soft);color:#b45309}
+.pill.err{background:var(--rose-soft);color:#be123c}
+.pill.load{background:var(--sky-soft);color:#0369a1}
+
+.filters{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);margin-bottom:18px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:140px}
+.field label,.sel span{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+select,.field input{border:1px solid var(--border);background:#fff;border-radius:9px;padding:8px 10px;min-height:38px;outline:none}
+select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.filters .grow{flex:1}
+.filters .note{color:var(--muted);font-size:12px;align-self:center}
+
+.banner{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:12px;margin-bottom:16px;border:1px solid;font-size:13px}
+.banner[hidden]{display:none}
+.banner.err{background:var(--rose-soft);border-color:#fecdd6;color:#9f1239}
+.banner.warn{background:var(--amber-soft);border-color:#fbe3a8;color:#92400e}
+.banner .x{margin-left:auto;background:none;border:0;cursor:pointer;color:inherit;font-size:18px;line-height:1;padding:0 4px}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;gap:13px;align-items:flex-start}
+.kpi .ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+.kpi .ico svg{width:20px;height:20px}
+.t-indigo{background:var(--primary-soft);color:var(--primary)} .t-green{background:var(--green-soft);color:#059669}
+.t-amber{background:var(--amber-soft);color:#d97706} .t-rose{background:var(--rose-soft);color:#e11d48}
+.t-sky{background:var(--sky-soft);color:#0284c7} .t-violet{background:var(--violet-soft);color:#7c3aed} .t-slate{background:var(--slate-soft);color:#475569}
+.kpi .lbl{color:var(--muted);font-size:12.5px;font-weight:500}
+.kpi .val{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin:2px 0}
+.kpi .sub{color:var(--faint);font-size:12px}
+.kpi .val small{font-size:14px;color:var(--muted);font-weight:600;margin-left:2px}
+
+/* ---------- cards / charts ---------- */
+.grid{display:grid;gap:14px;margin-bottom:16px}
+.g-3{grid-template-columns:1.35fr 1fr 1fr}
+.g-3b{grid-template-columns:1.2fr 1.2fr 1fr}
+.g-21{grid-template-columns:2fr 1fr}
+.g-2{grid-template-columns:1fr 1fr}
+.g-1{grid-template-columns:1fr}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 16px 12px;box-shadow:var(--shadow);min-width:0}
+.card-head{margin-bottom:10px}
+.card-head h3{font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+.card-head p{color:var(--muted);font-size:12px;margin-top:1px}
+.chart-box{position:relative;height:270px}
+.chart-box.short{height:230px}
+.chart-box.tall{height:300px}
+
+/* ---------- tables ---------- */
+.table-card{padding:0;overflow:hidden}
+.table-card .card-head{padding:16px 16px 0}
+.table-tools{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:6px 16px 12px}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:0 10px;min-height:38px;background:#fff;flex:1;min-width:200px;max-width:340px;color:var(--faint)}
+.search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.search input{border:0;outline:0;box-shadow:none!important;padding:8px 0;min-height:0;width:100%;background:transparent;color:var(--text)}
+.sel{display:flex;flex-direction:column;gap:4px}
+.table-tools .count{margin-left:auto;color:var(--muted);font-size:12px;align-self:center}
+.table-wrap{overflow:auto;border-top:1px solid var(--border);max-height:520px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:10px 14px;text-align:left;white-space:nowrap}
+thead th{position:sticky;top:0;background:#f8f9fd;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;z-index:1}
+thead th:hover{color:var(--text)}
+thead th .arr{display:inline-block;width:12px;margin-left:4px;color:var(--primary)}
+tbody td{border-bottom:1px solid #f0f2f8}
+tbody tr:hover td{background:#fafbff}
+.r{text-align:right} .c{text-align:center}
+td.empty{text-align:center;color:var(--muted);padding:28px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+.b-green{background:var(--green-soft);color:#047857}.b-slate{background:var(--slate-soft);color:#475569}
+.b-indigo{background:var(--primary-soft);color:var(--primary)}.b-amber{background:var(--amber-soft);color:#b45309}
+.b-rose{background:var(--rose-soft);color:#be123c}.b-sky{background:var(--sky-soft);color:#0369a1}.b-violet{background:var(--violet-soft);color:#6d28d9}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+.pager .btns{display:flex;gap:6px}
+.pager button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:600}
+.pager button:disabled{opacity:.4;cursor:default}
+.bar-cell{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.mini{width:56px;height:6px;border-radius:4px;background:var(--slate-soft);overflow:hidden}
+.mini i{display:block;height:100%;background:var(--primary)}
+
+/* ---------- empty / notice ---------- */
+.empty-state{background:var(--card);border:1px dashed #cdd3e4;border-radius:var(--radius);padding:56px 24px;text-align:center;max-width:620px;margin:40px auto}
+.empty-state .ico{width:56px;height:56px;border-radius:16px;margin:0 auto 14px;display:grid;place-items:center}
+.empty-state h2{font-size:18px;margin-bottom:6px}
+.empty-state p{color:var(--muted);margin-bottom:18px}
+.notice{background:var(--amber-soft);border:1px solid #fbe3a8;color:#92400e;border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.view{display:none}
+.view.active{display:block}
+
+/* ---------- settings ---------- */
+.set-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;margin-bottom:16px}
+.card h3.s{font-size:15px;margin-bottom:4px}
+.card p.d{color:var(--muted);font-size:13px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row .field{flex:1;min-width:220px}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint.err{color:#be123c}.hint.ok{color:#047857}
+.steps{margin:8px 0 0;padding-left:18px;color:#475569;font-size:13px}
+.steps li{margin:4px 0}
+code{background:var(--slate-soft);padding:1px 6px;border-radius:5px;font-size:12px}
+details{border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-top:8px;background:#fbfcff}
+summary{cursor:pointer;font-weight:600;font-size:13px}
+details p{font-size:12.5px;color:var(--muted);margin-top:6px;word-break:break-word}
+.health td,.health th{padding:9px 12px;white-space:normal}
+.health{min-width:0}
+.health-wrap{overflow:auto}
+.ok-t{color:#047857;font-weight:600}.err-t{color:#be123c;font-weight:600}.warn-t{color:#b45309}
+
+.toast-host{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:100}
+.toast{background:#0f172a;color:#fff;padding:11px 15px;border-radius:11px;font-size:13px;box-shadow:0 10px 30px rgba(15,23,42,.3);max-width:340px;animation:in .2s ease-out}
+.toast.err{background:#9f1239}.toast.ok{background:#047857}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  .g-3,.g-3b{grid-template-columns:1fr 1fr}
+  .g-3>.card:first-child,.g-3b>.card:first-child{grid-column:1/-1}
+  .g-21{grid-template-columns:1fr}
+  .set-grid{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);transform:translateX(-102%);transition:transform .22s ease;box-shadow:0 0 40px rgba(15,23,42,.18)}
+  body.nav-open .sidebar{transform:none}
+  body.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:30}
+  .icon-btn{display:grid}
+  .main{padding:16px 14px 32px}
+  .title-block{min-width:0;flex:1 1 calc(100% - 60px)}
+  .top-actions{width:100%;justify-content:space-between}
+}
+@media (max-width:680px){
+  .g-3,.g-3b,.g-2{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:12px;gap:10px;flex-direction:column}
+  .kpi .val{font-size:22px}
+  .field{min-width:calc(50% - 6px);flex:1}
+  .field.dept{min-width:100%}
+  .chart-box{height:250px}
+  .toast-host{left:14px;right:14px}.toast{max-width:none}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================ SIDEBAR ============================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark" data-icon="grid"></span>
+      <div><strong>HR Analytics</strong><small id="companyName">Workforce Management</small></div>
+    </div>
+    <div class="nav-label">Dashboard</div>
+    <nav class="nav" id="nav">
+      <a href="#overview" data-view="overview"><span data-icon="users"></span>Employee Overview</a>
+      <a href="#attendance" data-view="attendance"><span data-icon="calendar"></span>Attendance &amp; Discipline</a>
+      <a href="#recruitment" data-view="recruitment"><span data-icon="briefcase"></span>Recruitment Analytics</a>
+      <a href="#performance" data-view="performance"><span data-icon="award"></span>Employee Performance</a>
+      <a href="#turnover" data-view="turnover"><span data-icon="logout"></span>Employee Turnover</a>
+      <a href="#training" data-view="training"><span data-icon="book"></span>Training &amp; Development</a>
+      <div class="nav-sep"></div>
+      <a href="#settings" data-view="settings"><span data-icon="sliders"></span>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><b>Data source</b><span id="sideSource">Not connected</span></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============================== MAIN ============================== -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn" aria-label="Open menu" data-icon="menu"></button>
+      <div class="title-block"><h1 id="pageTitle">Employee Overview</h1><p id="pageSub"></p></div>
+      <div class="top-actions">
+        <span class="pill" id="connPill">Not connected</span>
+        <div class="updated"><span>Last updated</span><strong id="lastUpdated">—</strong></div>
+        <button class="btn primary" id="refreshBtn"><span data-icon="refresh"></span><span>Refresh Data</span></button>
+      </div>
+    </header>
+
+    <div class="filters" id="filters">
+      <div class="field"><label for="fFrom">From</label><select id="fFrom"></select></div>
+      <div class="field"><label for="fTo">To</label><select id="fTo"></select></div>
+      <div class="field dept"><label for="fDept">Department</label><select id="fDept"></select></div>
+      <button class="btn ghost" id="fReset" type="button">Reset filters</button>
+    </div>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <!-- empty state (no data source yet) -->
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="ico t-indigo" data-icon="grid" style="color:var(--primary)"></div>
+      <h2 id="emptyTitle">Connect your Google Sheet</h2>
+      <p id="emptyText">The dashboard has no data of its own. Paste the link of your spreadsheet in Settings and the six sections will fill in automatically.</p>
+      <button class="btn primary" id="emptyBtn" type="button">Open Settings</button>
+    </div>
+
+    <div id="content">
+
+      <!-- 1. EMPLOYEE OVERVIEW -->
+      <section class="view" id="view-overview">
+        <div class="kpi-grid" id="kpi-overview"></div>
+        <div class="grid g-3">
+          <div class="card"><div class="card-head"><h3>Employees by Department</h3><p>Active employees at the end of the period</p></div><div class="chart-box"><canvas id="ch-ov-dept"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Gender Composition</h3><p>Active employees</p></div><div class="chart-box"><canvas id="ch-ov-gender"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Employment Status</h3><p>Permanent, contract and intern</p></div><div class="chart-box"><canvas id="ch-ov-type"></canvas></div></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><h3>Employee Data</h3><p>All employees on record up to the end of the selected period</p></div><div id="tbl-overview"></div></div>
+      </section>
+
+      <!-- 2. ATTENDANCE -->
+      <section class="view" id="view-attendance">
+        <div class="kpi-grid" id="kpi-attendance"></div>
+        <div class="grid g-21">
+          <div class="card"><div class="card-head"><h3>Attendance Rate Trend</h3><p>Monthly (Present + Late) ÷ scheduled working days</p></div><div class="chart-box"><canvas id="ch-at-trend"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Attendance Status</h3><p>Share of all scheduled working days</p></div><div class="chart-box"><canvas id="ch-at-status"></canvas></div></div>
+        </div>
+        <div class="grid g-1">
+          <div class="card"><div class="card-head"><h3>Late Rate by Department</h3><p>Late days ÷ days attended</p></div><div class="chart-box short"><canvas id="ch-at-late"></canvas></div></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><h3>Attendance Recap</h3><p>Totals per employee for the selected period</p></div><div id="tbl-attendance"></div></div>
+      </section>
+
+      <!-- 3. RECRUITMENT -->
+      <section class="view" id="view-recruitment">
+        <div class="kpi-grid" id="kpi-recruitment"></div>
+        <div class="grid g-3b">
+          <div class="card"><div class="card-head"><h3>Recruitment Pipeline</h3><p>Candidates by current stage</p></div><div class="chart-box"><canvas id="ch-rc-pipe"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Applicants by Position</h3><p>Top 8 positions</p></div><div class="chart-box"><canvas id="ch-rc-pos"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Hired by Department</h3><p>Candidates accepted</p></div><div class="chart-box"><canvas id="ch-rc-hired"></canvas></div></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><h3>Recruitment List</h3><p>Candidates who applied in the selected period</p></div><div id="tbl-recruitment"></div></div>
+      </section>
+
+      <!-- 4. PERFORMANCE -->
+      <section class="view" id="view-performance">
+        <div class="kpi-grid" id="kpi-performance"></div>
+        <div class="grid g-3">
+          <div class="card"><div class="card-head"><h3>Average Score by Department</h3><p>Latest review per employee · scale 1–5</p></div><div class="chart-box"><canvas id="ch-pf-dept"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Rating Distribution</h3><p>Latest review per employee</p></div><div class="chart-box"><canvas id="ch-pf-cat"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Performance by Period</h3><p>Average score of each review cycle</p></div><div class="chart-box"><canvas id="ch-pf-period"></canvas></div></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><h3>Performance Reviews</h3><p>Excellent ≥ 4.5 · Good ≥ 3.5 · Average ≥ 2.5 · Needs Improvement &lt; 2.5</p></div><div id="tbl-performance"></div></div>
+      </section>
+
+      <!-- 5. TURNOVER -->
+      <section class="view" id="view-turnover">
+        <div class="kpi-grid" id="kpi-turnover"></div>
+        <div class="grid g-2">
+          <div class="card"><div class="card-head"><h3>Turnover Rate Trend</h3><p>Monthly exits ÷ average headcount (start &amp; end of month)</p></div><div class="chart-box"><canvas id="ch-tv-trend"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Joiners vs Leavers</h3><p>New hires and exits per month</p></div><div class="chart-box"><canvas id="ch-tv-flow"></canvas></div></div>
+        </div>
+        <div class="grid g-2">
+          <div class="card"><div class="card-head"><h3>Reasons for Leaving</h3><p>Number of exits by reason</p></div><div class="chart-box"><canvas id="ch-tv-reason"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Turnover by Department</h3><p>Exits ÷ average headcount over the period</p></div><div class="chart-box"><canvas id="ch-tv-dept"></canvas></div></div>
+        </div>
+      </section>
+
+      <!-- 6. TRAINING -->
+      <section class="view" id="view-training">
+        <div class="kpi-grid" id="kpi-training"></div>
+        <div class="grid g-3b">
+          <div class="card"><div class="card-head"><h3>Participants by Department</h3><p>Training enrolments</p></div><div class="chart-box"><canvas id="ch-tr-dept"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Most Attended Programs</h3><p>Top 8 by participants</p></div><div class="chart-box"><canvas id="ch-tr-prog"></canvas></div></div>
+          <div class="card"><div class="card-head"><h3>Completion Status</h3><p>Completed vs not yet completed</p></div><div class="chart-box"><canvas id="ch-tr-status"></canvas></div></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><h3>Training History</h3><p>Participation records in the selected period</p></div><div id="tbl-training"></div></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="set-grid">
+          <div class="card">
+            <h3 class="s">Data Source Configuration</h3>
+            <p class="d">Paste the link of your Google Sheets file. The dashboard reads the six sheets directly from it and refreshes automatically — no need to edit or re-upload this page when the data changes.</p>
+            <div class="row">
+              <div class="field"><label for="urlInput">Google Sheets URL</label><input id="urlInput" type="url" placeholder="https://docs.google.com/spreadsheets/d/…/edit" autocomplete="off" spellcheck="false"></div>
+              <button class="btn primary" id="saveBtn" type="button"><span data-icon="check"></span>Save &amp; Connect</button>
+            </div>
+            <p class="hint" id="urlMsg" style="margin-top:8px"></p>
+            <div class="row" style="margin-top:14px">
+              <div class="field" style="max-width:220px;min-width:180px"><label for="intervalSel">Auto-refresh</label>
+                <select id="intervalSel"><option value="30">Every 30 seconds</option><option value="45">Every 45 seconds</option><option value="60">Every 60 seconds</option></select></div>
+              <button class="btn" id="copyLink" type="button"><span data-icon="link"></span>Copy shareable link</button>
+              <button class="btn danger" id="disconnectBtn" type="button">Disconnect</button>
+            </div>
+            <p class="hint" style="margin-top:8px">The URL is saved in this browser only. “Copy shareable link” gives a link that opens the dashboard already connected to this sheet.</p>
+          </div>
+          <div class="card">
+            <h3 class="s">Spreadsheet access</h3>
+            <p class="d">No API key or password is used. The sheet only needs to be readable by link:</p>
+            <ol class="steps">
+              <li>Open the sheet → <b>Share</b> → <b>General access</b>.</li>
+              <li>Choose <b>Anyone with the link</b> and role <b>Viewer</b>.</li>
+              <li>Keep the six sheet names and the column headers exactly as in the template.</li>
+            </ol>
+            <p class="hint" style="margin-top:10px">Only people with edit access to the sheet can change the data; the dashboard is read-only.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <h3 class="s">Data health</h3>
+          <p class="d">Result of the last refresh, checked against the expected sheet names and columns.</p>
+          <div class="health-wrap"><table class="health"><thead><tr><th>Sheet</th><th>Status</th><th class="r">Rows</th><th>Details</th></tr></thead><tbody id="healthBody"></tbody></table></div>
+          <div id="crossWarn" class="hint" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="s">Required structure</h3>
+          <p class="d">Sheet names and column headers the dashboard expects (order does not matter, extra columns are ignored).</p>
+          <div id="schemaList"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<div class="toast-host" id="toasts"></div>
+
+<script>
+/* =====================================================================
+ * HRCore — pure logic (no DOM): parsing, validation, filtering, KPIs.
+ * ===================================================================== */
+(function (root) {
+  'use strict';
+
+  /* ------------------------------------------------------------------ schema */
+  const SHEETS = ['Employees', 'Attendance', 'Recruitment', 'Performance', 'Turnover', 'Training'];
+
+  // type: string | number | date | month ; required defaults to true
+  const SCHEMA = {
+    Employees: [
+      { name: 'Employee_ID', type: 'string' }, { name: 'Employee_Name', type: 'string' },
+      { name: 'Gender', type: 'string' }, { name: 'Department', type: 'string' },
+      { name: 'Position', type: 'string' }, { name: 'Employment_Status', type: 'string' },
+      { name: 'Join_Date', type: 'date' }, { name: 'Status', type: 'string' }
+    ],
+    Attendance: [
+      { name: 'Employee_ID', type: 'string' }, { name: 'Employee_Name', type: 'string' },
+      { name: 'Department', type: 'string' }, { name: 'Month', type: 'month' },
+      { name: 'Working_Days', type: 'number' }, { name: 'Present', type: 'number' },
+      { name: 'Late', type: 'number' }, { name: 'Absence', type: 'number' }, { name: 'Leave', type: 'number' }
+    ],
+    Recruitment: [
+      { name: 'Candidate_ID', type: 'string' }, { name: 'Candidate_Name', type: 'string' },
+      { name: 'Vacancy_ID', type: 'string' }, { name: 'Position', type: 'string' },
+      { name: 'Department', type: 'string' }, { name: 'Apply_Date', type: 'date' },
+      { name: 'Status', type: 'string' }, { name: 'Vacancy_Status', type: 'string' }
+    ],
+    Performance: [
+      { name: 'Employee_ID', type: 'string' }, { name: 'Employee_Name', type: 'string' },
+      { name: 'Department', type: 'string' }, { name: 'Period', type: 'string' },
+      { name: 'Evaluation_Date', type: 'date' }, { name: 'Score', type: 'number' },
+      { name: 'Category', type: 'string', required: false }
+    ],
+    Turnover: [
+      { name: 'Employee_ID', type: 'string' }, { name: 'Employee_Name', type: 'string' },
+      { name: 'Department', type: 'string' }, { name: 'Exit_Date', type: 'date' },
+      { name: 'Reason', type: 'string' }
+    ],
+    Training: [
+      { name: 'Program_ID', type: 'string' }, { name: 'Program_Name', type: 'string' },
+      { name: 'Employee_ID', type: 'string' }, { name: 'Employee_Name', type: 'string' },
+      { name: 'Department', type: 'string' }, { name: 'Training_Date', type: 'date' },
+      { name: 'Hours', type: 'number' }, { name: 'Status', type: 'string' }
+    ]
+  };
+
+  const ENUMS = {
+    'Employees.Status': ['Active', 'Inactive'],
+    'Recruitment.Status': ['Applied', 'Screening', 'Interview', 'Assessment', 'Offered', 'Hired', 'Rejected'],
+    'Recruitment.Vacancy_Status': ['Open', 'Closed'],
+    'Training.Status': ['Completed', 'In Progress', 'Not Completed']
+  };
+
+  const STAGES = ENUMS['Recruitment.Status'];
+  const IN_PROCESS = ['Screening', 'Interview', 'Assessment', 'Offered'];
+  const EMP_TYPES = ['Permanent', 'Contract', 'Intern'];
+  const CATEGORIES = [
+    { name: 'Excellent', min: 4.5 }, { name: 'Good', min: 3.5 },
+    { name: 'Average', min: 2.5 }, { name: 'Needs Improvement', min: -Infinity }
+  ];
+  const HIGH_PERFORMER_MIN = 4.5;
+
+  /* ---------------------------------------------------------------- helpers */
+  const pad = n => String(n).padStart(2, '0');
+  const normKey = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-based
+  function iso(y, m, d) {
+    if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= daysIn(y, m))) return null;
+    return y + '-' + pad(m) + '-' + pad(d);
+  }
+  function addDays(isoDate, n) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d + n));
+    return t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate());
+  }
+  const monthKey = isoDate => isoDate.slice(0, 7);
+  const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return iso(y, m, daysIn(y, m)); };
+
+  function coerceDate(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'string') {
+      const s = v.trim();
+      let m = s.match(/^Date\((\d+),\s*(\d+),\s*(\d+)/);            // Google Sheets JSON date (month is 0-based)
+      if (m) return iso(+m[1], +m[2] + 1, +m[3]);
+      m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);                   // 2026-05-12
+      if (m) return iso(+m[1], +m[2], +m[3]);
+      m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);      // 12/05/2026 -> day/month/year
+      if (m) return iso(+m[3], +m[2], +m[1]);
+    }
+    return null;
+  }
+  function coerceMonth(v) {
+    if (v == null || v === '') return null;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})$/);
+    if (m && +m[2] >= 1 && +m[2] <= 12) return m[1] + '-' + pad(+m[2]);
+    const dte = coerceDate(s);
+    return dte ? monthKey(dte) : null;
+  }
+  function coerceNumber(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = Number(v.trim().replace(',', '.'));
+      return isFinite(n) ? n : null;
+    }
+    return null;
+  }
+  const coerceString = v => (v == null ? '' : String(v).trim());
+  const canonical = (v, list) => list.find(x => normKey(x) === normKey(v)) || null;
+
+  /* ------------------------------------------------------ gviz response parse */
+  function fail(code, message) { const e = new Error(message); e.code = code; return e; }
+
+  function parseGviz(text) {
+    if (typeof text !== 'string') throw fail('NOT_GVIZ', 'Empty response');
+    const m = text.match(/setResponse\(([\s\S]*)\)\s*;?\s*$/);
+    if (!m) throw fail('NOT_GVIZ', 'The response is not spreadsheet data');
+    let obj;
+    try { obj = JSON.parse(m[1]); } catch (_) { throw fail('BAD_JSON', 'Could not read the spreadsheet response'); }
+    if (obj.status === 'error') {
+      const er = (obj.errors && obj.errors[0]) || {};
+      throw fail('GVIZ_ERROR', er.detailed_message || er.message || 'Google Sheets returned an error');
+    }
+    const table = obj.table || { cols: [], rows: [] };
+    let headers = table.cols.map(c => (c.label == null ? '' : String(c.label)));
+    let rows = table.rows.map(r => table.cols.map((_, i) => {
+      const cell = r.c && r.c[i];
+      return cell ? cell.v : null;
+    }));
+    // header row not detected by Google (labels empty) -> first row holds the headers
+    if (headers.every(h => h.trim() === '') && rows.length) {
+      headers = rows[0].map(x => (x == null ? '' : String(x)));
+      rows = rows.slice(1);
+    }
+    return { headers, rows };
+  }
+
+  /* --------------------------------------------------- build + validate a sheet */
+  function buildSheet(name, parsed) {
+    const schema = SCHEMA[name];
+    if (!schema) return { ok: false, error: 'Unknown sheet', rows: [], warnings: [] };
+    const idx = {};
+    parsed.headers.forEach((h, i) => { const k = normKey(h); if (k && !(k in idx)) idx[k] = i; });
+    const missing = schema.filter(c => c.required !== false && !(normKey(c.name) in idx)).map(c => c.name);
+    if (missing.length) {
+      return { ok: false, error: 'Missing column(s): ' + missing.join(', '), missing, rows: [], warnings: [] };
+    }
+    const bad = {};              // column -> count of rows dropped
+    const badEnum = {};
+    const out = [];
+    parsed.rows.forEach(raw => {
+      if (raw.every(v => v == null || String(v).trim() === '')) return;   // blank line
+      const row = {};
+      let valid = true;
+      for (const col of schema) {
+        const pos = idx[normKey(col.name)];
+        const rv = pos === undefined ? null : raw[pos];
+        let val;
+        if (col.type === 'date') val = coerceDate(rv);
+        else if (col.type === 'month') val = coerceMonth(rv);
+        else if (col.type === 'number') val = coerceNumber(rv);
+        else val = coerceString(rv);
+        const empty = val === null || val === '';
+        if (empty && col.required !== false) { bad[col.name] = (bad[col.name] || 0) + 1; valid = false; break; }
+        if (!empty && ENUMS[name + '.' + col.name]) {
+          const c = canonical(val, ENUMS[name + '.' + col.name]);
+          if (!c) { badEnum[col.name] = (badEnum[col.name] || 0) + 1; valid = false; break; }
+          val = c;
+        }
+        row[col.name] = empty ? (col.type === 'string' ? '' : null) : val;
+      }
+      if (valid) out.push(row);
+    });
+    const warnings = [];
+    Object.keys(bad).forEach(c => warnings.push(bad[c] + ' row(s) ignored: ' + c + ' is empty or invalid'));
+    Object.keys(badEnum).forEach(c => warnings.push(badEnum[c] + ' row(s) ignored: ' + c + ' must be one of ' + ENUMS[name + '.' + c].join(' / ')));
+    if (name === 'Employees') {
+      const seen = new Set(); const dup = new Set(); const keep = [];
+      out.forEach(r => { if (seen.has(r.Employee_ID)) dup.add(r.Employee_ID); else { seen.add(r.Employee_ID); keep.push(r); } });
+      if (dup.size) warnings.push('Duplicate Employee_ID ignored: ' + [...dup].slice(0, 5).join(', '));
+      return { ok: true, rows: keep, warnings };
+    }
+    return { ok: true, rows: out, warnings };
+  }
+
+  /* ------------------------------------------------------------ derived model */
+  function emptyData() { const d = {}; SHEETS.forEach(s => { d[s] = []; }); return d; }
+
+  function prepare(data) {
+    const exitMap = new Map();
+    data.Turnover.forEach(t => { if (!exitMap.has(t.Employee_ID)) exitMap.set(t.Employee_ID, t); });
+    const employees = data.Employees.map(e => {
+      const t = exitMap.get(e.Employee_ID);
+      let exitDate = t ? t.Exit_Date : null;
+      if (!exitDate && e.Status === 'Inactive') exitDate = '1900-01-01';    // marked inactive without an exit date
+      return Object.assign({}, e, { exitDate, exitReason: t ? t.Reason : null });
+    });
+    const set = new Set();
+    data.Attendance.forEach(r => set.add(r.Month));
+    data.Recruitment.forEach(r => set.add(monthKey(r.Apply_Date)));
+    data.Performance.forEach(r => set.add(monthKey(r.Evaluation_Date)));
+    data.Turnover.forEach(r => set.add(monthKey(r.Exit_Date)));
+    data.Training.forEach(r => set.add(monthKey(r.Training_Date)));
+    let months = [];
+    if (set.size) {
+      const sorted = [...set].sort();
+      let [y, m] = sorted[0].split('-').map(Number);
+      const end = sorted[sorted.length - 1];
+      for (;;) {
+        const k = y + '-' + pad(m); months.push(k);
+        if (k >= end) break;
+        m++; if (m > 12) { m = 1; y++; }
+      }
+    }
+    const dset = new Set();
+    SHEETS.forEach(s => data[s].forEach(r => { if (r.Department) dset.add(r.Department); }));
+    return {
+      employees, attendance: data.Attendance, recruitment: data.Recruitment, performance: data.Performance,
+      turnover: data.Turnover, training: data.Training, months, depts: [...dset].sort()
+    };
+  }
+
+  function crossChecks(data) {
+    const w = [];
+    const ids = new Set(data.Employees.map(e => e.Employee_ID));
+    if (!ids.size) return w;
+    ['Attendance', 'Performance', 'Turnover', 'Training'].forEach(s => {
+      const orphan = new Set(data[s].filter(r => !ids.has(r.Employee_ID)).map(r => r.Employee_ID));
+      if (orphan.size) w.push(s + ': ' + orphan.size + ' Employee_ID not found in Employees (' + [...orphan].slice(0, 3).join(', ') + (orphan.size > 3 ? '…' : '') + ')');
+    });
+    const exited = new Set(data.Turnover.map(t => t.Employee_ID));
+    const noRec = data.Employees.filter(e => e.Status === 'Inactive' && !exited.has(e.Employee_ID)).length;
+    if (noRec) w.push('Employees: ' + noRec + ' inactive employee(s) have no matching row in Turnover (no exit date)');
+    return w;
+  }
+
+  /* ------------------------------------------------------------------ filters */
+  // f = { from:'YYYY-MM', to:'YYYY-MM', dept:'ALL'|name }
+  function normFilter(model, f) {
+    let from = f.from || model.months[0], to = f.to || model.months[model.months.length - 1];
+    if (from && to && from > to) { const t = from; from = to; to = t; }
+    return { from, to, dept: f.dept || 'ALL' };
+  }
+  function getRange(f) { return { start: f.from + '-01', end: lastDay(f.to) }; }
+  const inRange = (d, r) => d >= r.start && d <= r.end;
+  const deptOk = (f, dept) => f.dept === 'ALL' || dept === f.dept;
+  const deptsInView = (model, f) => (f.dept === 'ALL' ? model.depts : [f.dept]);
+  const monthsInView = (model, f) => model.months.filter(m => m >= f.from && m <= f.to);
+
+  // employees on the payroll at the END of the given day
+  function headcountEnd(model, day, dept) {
+    let n = 0;
+    model.employees.forEach(e => {
+      if ((dept === 'ALL' || e.Department === dept) && e.Join_Date <= day && (!e.exitDate || e.exitDate > day)) n++;
+    });
+    return n;
+  }
+
+  const sum = (arr, fn) => arr.reduce((a, x) => a + fn(x), 0);
+  const pct = (a, b) => (b ? (a / b) * 100 : 0);
+  function countBy(rows, fn) { const m = new Map(); rows.forEach(r => { const k = fn(r); m.set(k, (m.get(k) || 0) + 1); }); return m; }
+
+  /* ----------------------------------------------------------------- sections */
+  function overview(model, f0) {
+    const f = normFilter(model, f0), r = getRange(f);
+    const scope = model.employees
+      .filter(e => deptOk(f, e.Department) && e.Join_Date <= r.end)
+      .map(e => Object.assign({}, e, { derivedStatus: e.exitDate && e.exitDate <= r.end ? 'Inactive' : 'Active' }));
+    const active = scope.filter(e => e.derivedStatus === 'Active');
+    const total = scope.length;
+    const kpi = {
+      total, active: active.length, inactive: total - active.length,
+      newEmployees: scope.filter(e => inRange(e.Join_Date, r)).length
+    };
+    const dCount = countBy(active, e => e.Department);
+    const byDept = deptsInView(model, f).map(d => ({ label: d, value: dCount.get(d) || 0 }));
+    const gCount = countBy(active, e => e.Gender);
+    const genders = [...gCount.keys()].sort();
+    const byGender = genders.map(g => ({ label: g, value: gCount.get(g) }));
+    const tCount = countBy(active, e => e.Employment_Status);
+    const types = EMP_TYPES.concat([...tCount.keys()].filter(k => !EMP_TYPES.includes(k)).sort());
+    const byType = types.filter(t => tCount.has(t) || EMP_TYPES.includes(t)).map(t => ({ label: t, value: tCount.get(t) || 0 }));
+    return { f, range: r, kpi, byDept, byGender, byType, table: scope };
+  }
+
+  function attendance(model, f0) {
+    const f = normFilter(model, f0);
+    const rows = model.attendance.filter(a => a.Month >= f.from && a.Month <= f.to && deptOk(f, a.Department));
+    const tot = {
+      days: sum(rows, a => a.Working_Days), present: sum(rows, a => a.Present), late: sum(rows, a => a.Late),
+      absence: sum(rows, a => a.Absence), leave: sum(rows, a => a.Leave)
+    };
+    const kpi = Object.assign({ rate: pct(tot.present + tot.late, tot.days) }, tot);
+    const trend = monthsInView(model, f).map(m => {
+      const rr = rows.filter(a => a.Month === m);
+      const d = sum(rr, a => a.Working_Days), p = sum(rr, a => a.Present), l = sum(rr, a => a.Late);
+      return { month: m, rate: d ? pct(p + l, d) : null, days: d, present: p, late: l, absence: sum(rr, a => a.Absence), leave: sum(rr, a => a.Leave) };
+    });
+    const status = [
+      { label: 'Present', value: tot.present }, { label: 'Late', value: tot.late },
+      { label: 'Absence', value: tot.absence }, { label: 'Leave', value: tot.leave }
+    ];
+    const lateByDept = deptsInView(model, f).map(d => {
+      const rr = rows.filter(a => a.Department === d);
+      const l = sum(rr, a => a.Late), att = sum(rr, a => a.Present) + l;
+      return { label: d, value: pct(l, att), late: l, attended: att };
+    });
+    const per = new Map();
+    rows.forEach(a => {
+      let o = per.get(a.Employee_ID);
+      if (!o) { o = { id: a.Employee_ID, name: a.Employee_Name, dept: a.Department, days: 0, present: 0, late: 0, absence: 0, leave: 0 }; per.set(a.Employee_ID, o); }
+      o.days += a.Working_Days; o.present += a.Present; o.late += a.Late; o.absence += a.Absence; o.leave += a.Leave;
+    });
+    const table = [...per.values()].map(o => Object.assign(o, { rate: pct(o.present + o.late, o.days) }));
+    return { f, kpi, trend, status, lateByDept, table };
+  }
+
+  function recruitment(model, f0) {
+    const f = normFilter(model, f0), r = getRange(f);
+    const rows = model.recruitment.filter(c => inRange(c.Apply_Date, r) && deptOk(f, c.Department));
+    const hired = rows.filter(c => c.Status === 'Hired');
+    const kpi = {
+      applicants: rows.length,
+      openPositions: new Set(rows.filter(c => c.Vacancy_Status === 'Open').map(c => c.Vacancy_ID)).size,
+      inProcess: rows.filter(c => IN_PROCESS.includes(c.Status)).length,
+      hired: hired.length
+    };
+    const sc = countBy(rows, c => c.Status);
+    const pipeline = STAGES.map(s => ({ label: s, value: sc.get(s) || 0 }));
+    const pc = countBy(rows, c => c.Position);
+    const positions = [...pc.entries()].map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)).slice(0, 8);
+    const hc = countBy(hired, c => c.Department);
+    const hiredByDept = deptsInView(model, f).map(d => ({ label: d, value: hc.get(d) || 0 }));
+    return { f, kpi, pipeline, positions, hiredByDept, table: rows };
+  }
+
+  const categoryOf = s => CATEGORIES.find(c => s >= c.min).name;
+
+  function performance(model, f0) {
+    const f = normFilter(model, f0), r = getRange(f);
+    const rows = model.performance.filter(p => inRange(p.Evaluation_Date, r) && deptOk(f, p.Department))
+      .map(p => Object.assign({}, p, { Level: categoryOf(p.Score) }));
+    const latest = new Map();
+    rows.forEach(p => {
+      const cur = latest.get(p.Employee_ID);
+      if (!cur || p.Evaluation_Date >= cur.Evaluation_Date) latest.set(p.Employee_ID, p);
+    });
+    const L = [...latest.values()];
+    const kpi = {
+      avg: L.length ? sum(L, p => p.Score) / L.length : 0,
+      highPerformers: L.filter(p => p.Score >= HIGH_PERFORMER_MIN).length,
+      evaluated: L.length
+    };
+    const byDept = deptsInView(model, f).map(d => {
+      const x = L.filter(p => p.Department === d);
+      return { label: d, value: x.length ? sum(x, p => p.Score) / x.length : null, n: x.length };
+    });
+    const cc = countBy(L, p => p.Level);
+    const categories = CATEGORIES.map(c => ({ label: c.name, value: cc.get(c.name) || 0 }));
+    const pm = new Map();
+    rows.forEach(p => {
+      let o = pm.get(p.Period);
+      if (!o) { o = { label: p.Period, first: p.Evaluation_Date, total: 0, n: 0 }; pm.set(p.Period, o); }
+      if (p.Evaluation_Date < o.first) o.first = p.Evaluation_Date;
+      o.total += p.Score; o.n++;
+    });
+    const periods = [...pm.values()].sort((a, b) => a.first.localeCompare(b.first))
+      .map(o => ({ label: o.label, value: o.total / o.n, n: o.n }));
+    return { f, kpi, byDept, categories, periods, table: rows };
+  }
+
+  function turnover(model, f0) {
+    const f = normFilter(model, f0), r = getRange(f);
+    const exits = model.turnover.filter(t => inRange(t.Exit_Date, r) && deptOk(f, t.Department));
+    const hires = model.employees.filter(e => deptOk(f, e.Department) && inRange(e.Join_Date, r));
+    const hcStart = headcountEnd(model, addDays(r.start, -1), f.dept);
+    const hcEnd = headcountEnd(model, r.end, f.dept);
+    const avg = (hcStart + hcEnd) / 2;
+    const kpi = { resignations: exits.length, rate: pct(exits.length, avg), newHires: hires.length, net: hires.length - exits.length, hcStart, hcEnd, avgHeadcount: avg };
+    const monthly = monthsInView(model, f).map(m => {
+      const a = m + '-01', b = lastDay(m);
+      const x = exits.filter(t => monthKey(t.Exit_Date) === m).length;
+      const h = hires.filter(e => monthKey(e.Join_Date) === m).length;
+      const s = headcountEnd(model, addDays(a, -1), f.dept), e2 = headcountEnd(model, b, f.dept);
+      return { month: m, exits: x, hires: h, rate: pct(x, (s + e2) / 2), avgHeadcount: (s + e2) / 2 };
+    });
+    const rc = countBy(exits, t => t.Reason || 'Unspecified');
+    const reasons = [...rc.entries()].map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+    const byDept = deptsInView(model, f).map(d => {
+      const x = exits.filter(t => t.Department === d).length;
+      const a = (headcountEnd(model, addDays(r.start, -1), d) + headcountEnd(model, r.end, d)) / 2;
+      return { label: d, value: pct(x, a), exits: x, avgHeadcount: a };
+    });
+    return { f, kpi, monthly, reasons, byDept };
+  }
+
+  function training(model, f0) {
+    const f = normFilter(model, f0), r = getRange(f);
+    const rows = model.training.filter(t => inRange(t.Training_Date, r) && deptOk(f, t.Department));
+    const done = rows.filter(t => t.Status === 'Completed');
+    const kpi = {
+      programs: new Set(rows.map(t => t.Program_ID)).size,
+      participants: rows.length,
+      hours: sum(done, t => t.Hours),
+      completion: pct(done.length, rows.length),
+      completed: done.length
+    };
+    const dc = countBy(rows, t => t.Department);
+    const byDept = deptsInView(model, f).map(d => ({ label: d, value: dc.get(d) || 0 }));
+    const pc = countBy(rows, t => t.Program_Name);
+    const programs = [...pc.entries()].map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)).slice(0, 8);
+    const sc = countBy(rows, t => t.Status);
+    const status = ENUMS['Training.Status'].map(s => ({ label: s, value: sc.get(s) || 0 }));
+    return { f, kpi, byDept, programs, status, table: rows };
+  }
+
+  /* ---------------------------------------------------------- sheet id helper */
+  function extractSheetId(input) {
+    const s = String(input || '').trim();
+    if (!s) return { error: 'Please paste the Google Sheets URL.' };
+    if (/\/spreadsheets\/d\/e\//.test(s)) {
+      return { error: 'This looks like a "Publish to web" link. Paste the normal spreadsheet link instead (the one from the Share button or your browser address bar).' };
+    }
+    const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{15,})/);
+    if (m) return { id: m[1] };
+    if (/^[a-zA-Z0-9_-]{25,}$/.test(s)) return { id: s };
+    return { error: 'That does not look like a Google Sheets URL (expected https://docs.google.com/spreadsheets/d/…).' };
+  }
+
+  const api = {
+    SHEETS, SCHEMA, ENUMS, STAGES, IN_PROCESS, EMP_TYPES, CATEGORIES, HIGH_PERFORMER_MIN,
+    parseGviz, buildSheet, emptyData, prepare, crossChecks, normFilter, getRange, monthKey, lastDay, addDays,
+    headcountEnd, categoryOf, extractSheetId, coerceDate,
+    overview, attendance, recruitment, performance, turnover, training
+  };
+  root.HRCore = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* =====================================================================
+ * App — UI layer: Google Sheets fetching, rendering, charts, tables.
+ * All calculations live in HRCore; this file only talks to the DOM.
+ * ===================================================================== */
+(function () {
+  'use strict';
+  const C = window.HRCore;
+
+  /* ---------------------------------------------------------------- CONFIG */
+  const CONFIG = {
+    DEFAULT_SHEET_URL: '',          // optional: pre-connect every visitor to this spreadsheet link
+    REFRESH_SECONDS: 45,            // auto-refresh interval (30–60)
+    COMPANY_NAME: 'PT Nusantara Digital'
+  };
+
+  /* ----------------------------------------------------------------- icons */
+  const ICONS = {
+    grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    userplus: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+    usercheck: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
+    userx: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/>',
+    percent: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    checkcircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    xcircle: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    coffee: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+    filetext: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    loader: '<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>',
+    refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    award: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+    clipboard: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><polyline points="9 14 11 16 15 12"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    trending: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+    menu: '<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'
+  };
+  const icon = n => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[n] || '') + '</svg>';
+  document.querySelectorAll('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon)));
+
+  /* ------------------------------------------------------------- formatting */
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const nf = new Intl.NumberFormat('en-US');
+  const fInt = n => nf.format(Math.round(n));
+  const fPct = (n, d) => (isFinite(n) ? n : 0).toFixed(d == null ? 1 : d) + '%';
+  const fDec = (n, d) => (isFinite(n) ? n.toFixed(d == null ? 2 : d) : '—');
+  const P = (a, b) => (b ? (a / b) * 100 : 0);
+  const monthShort = ym => MON[+ym.slice(5, 7) - 1] + ' ' + ym.slice(2, 4);
+  const monthLong = ym => MON[+ym.slice(5, 7) - 1] + ' ' + ym.slice(0, 4);
+  const fDate = s => { const [y, m, d] = s.split('-'); return +d + ' ' + MON[+m - 1] + ' ' + y; };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = id => document.getElementById(id);
+  const clockStr = d => d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  function toast(msg, kind) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (kind ? ' ' + kind : '');
+    el.textContent = msg;
+    $('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+  }
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (_) { /* private mode */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (_) { /* ignore */ } }
+  };
+  const K_URL = 'hrdash.sheetUrl', K_INT = 'hrdash.interval';
+
+  /* ------------------------------------------------------------------ state */
+  const VIEWS = {
+    overview: { title: 'Employee Overview', deps: ['Employees', 'Turnover'] },
+    attendance: { title: 'Attendance & Discipline', deps: ['Attendance'] },
+    recruitment: { title: 'Recruitment Analytics', deps: ['Recruitment'] },
+    performance: { title: 'Employee Performance', deps: ['Performance'] },
+    turnover: { title: 'Employee Turnover', deps: ['Employees', 'Turnover'] },
+    training: { title: 'Training & Development', deps: ['Training'] },
+    settings: { title: 'Settings', deps: [] }
+  };
+  const state = {
+    sheetId: null, rawUrl: '',
+    data: C.emptyData(), info: {}, sigs: {},
+    model: null, hasData: false, crossWarnings: [],
+    filters: { from: null, to: null, dept: 'ALL' }, userRange: false,
+    view: 'overview', conn: 'idle', lastUpdated: null, lastAttempt: 0, loading: false,
+    interval: CONFIG.REFRESH_SECONDS, bannerDismissed: ''
+  };
+  function resetData() {
+    state.data = C.emptyData(); state.sigs = {}; state.model = null; state.hasData = false; state.crossWarnings = [];
+    state.filters = { from: null, to: null, dept: 'ALL' }; state.userRange = false; state.lastUpdated = null; state.conn = 'idle';
+    C.SHEETS.forEach(s => { state.info[s] = { status: 'pending', rows: 0, error: '', warnings: [], hasData: false }; });
+  }
+  resetData();
+
+  /* ============================================================ DATA LAYER */
+  const GVIZ = (id, sheet) => 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(sheet) + '&_=' + Date.now();
+
+  async function fetchSheetText(id, name) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const res = await fetch(GVIZ(id, name), { cache: 'no-store', signal: ctrl.signal });
+      if (!res.ok) {
+        const e = new Error(res.status === 404 || res.status === 403 || res.status === 401
+          ? 'Spreadsheet not found or not shared (HTTP ' + res.status + ')' : 'Google returned HTTP ' + res.status);
+        e.code = 'HTTP'; throw e;
+      }
+      return await res.text();
+    } catch (e) {
+      if (e.code) throw e;
+      const err = new Error(e.name === 'AbortError' ? 'The request timed out'
+        : 'Cannot reach the spreadsheet. Check your internet connection and that sharing is set to “Anyone with the link – Viewer”');
+      err.code = e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK';
+      throw err;
+    } finally { clearTimeout(timer); }
+  }
+  const friendly = e => {
+    if (e.code === 'NOT_GVIZ') return 'Google did not return spreadsheet data — the sheet is probably private. Set sharing to “Anyone with the link – Viewer”';
+    return e.message || 'Unknown error';
+  };
+
+  async function refresh(opts) {
+    opts = opts || {};
+    if (!state.sheetId || state.loading) return null;
+    state.loading = true; state.lastAttempt = Date.now();
+    setConn('load'); setBusy(true);
+    const results = await Promise.all(C.SHEETS.map(async name => {
+      try {
+        const text = await fetchSheetText(state.sheetId, name);
+        const built = C.buildSheet(name, C.parseGviz(text));
+        return { name, text, built };
+      } catch (e) { return { name, error: friendly(e) }; }
+    }));
+    let ok = 0, changed = false;
+    const failures = [];
+    results.forEach(r => {
+      const info = state.info[r.name];
+      const err = r.error || (r.built && !r.built.ok ? r.built.error : '');
+      if (err) { info.status = 'error'; info.error = err; failures.push({ name: r.name, msg: err }); return; }
+      ok++;
+      info.status = 'ok'; info.error = ''; info.rows = r.built.rows.length; info.warnings = r.built.warnings; info.hasData = true;
+      if (state.sigs[r.name] !== r.text) { state.sigs[r.name] = r.text; state.data[r.name] = r.built.rows; changed = true; }
+    });
+    const firstBuild = !state.model && ok > 0;
+    if (ok > 0) state.lastUpdated = new Date();
+    setConn(ok === C.SHEETS.length ? 'ok' : ok > 0 ? 'warn' : 'err');
+    state.loading = false; setBusy(false);
+    state.failures = failures;
+    if (changed || firstBuild) rebuildModel();
+    renderChrome();
+    if (changed || firstBuild || ok === 0) renderView();
+    else if (state.view === 'settings') renderSettings();
+    if (opts.manual && !opts.quiet) {
+      if (ok === 0) toast('Refresh failed — showing the last data available', 'err');
+      else if (failures.length) toast('Refreshed, but ' + failures.length + ' sheet(s) have problems', 'err');
+      else toast(changed ? 'Data updated from Google Sheets' : 'Already up to date', 'ok');
+    }
+    return { ok, failures, changed };
+  }
+
+  function rebuildModel() {
+    state.model = C.prepare(state.data);
+    state.hasData = C.SHEETS.some(s => state.info[s].hasData);
+    state.crossWarnings = C.crossChecks(state.data);
+    const m = state.model.months, f = state.filters;
+    if (!state.userRange || !m.includes(f.from) || !m.includes(f.to)) { f.from = m[0] || null; f.to = m[m.length - 1] || null; state.userRange = false; }
+    if (f.dept !== 'ALL' && !state.model.depts.includes(f.dept)) f.dept = 'ALL';
+    fillFilters();
+  }
+
+  let timer = null;
+  function scheduleRefresh() {
+    clearInterval(timer); timer = null;
+    if (!state.sheetId) return;
+    timer = setInterval(() => { if (!document.hidden) refresh({ manual: false }); }, state.interval * 1000);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && state.sheetId && Date.now() - state.lastAttempt > state.interval * 1000) refresh({ manual: false });
+  });
+
+  /* ============================================================== CHROME */
+  const PILL = { idle: ['', 'Not connected'], load: ['load', 'Loading…'], ok: ['ok', 'Connected'], warn: ['warn', 'Partially loaded'], err: ['err', 'Connection error'] };
+  function setConn(c) { state.conn = c; const p = $('connPill'); p.className = 'pill ' + PILL[c][0]; p.textContent = PILL[c][1]; }
+  function setBusy(b) {
+    const btn = $('refreshBtn');
+    btn.disabled = b; btn.classList.toggle('loading', b);
+    btn.lastElementChild.textContent = b ? 'Refreshing…' : 'Refresh Data';
+  }
+  function renderChrome() {
+    $('lastUpdated').textContent = state.lastUpdated ? clockStr(state.lastUpdated) : '—';
+    $('sideSource').textContent = state.sheetId ? 'Google Sheets · …' + state.sheetId.slice(-6) : 'Not connected';
+    $('companyName').textContent = CONFIG.COMPANY_NAME;
+    // banner
+    const b = $('banner');
+    let msg = '', kind = 'err';
+    const f = state.failures || [];
+    if (state.sheetId && state.conn === 'err') {
+      const reasons = [...new Set(f.map(x => x.msg))].slice(0, 2).join(' · ');
+      msg = '<b>Could not load data from Google Sheets.</b> ' + esc(reasons) + '.' +
+        (state.hasData ? ' Showing the data from the last successful update' + (state.lastUpdated ? ' (' + esc(clockStr(state.lastUpdated)) + ')' : '') + '.' : '');
+    } else if (state.sheetId && state.conn === 'warn') {
+      kind = 'warn';
+      msg = '<b>Some sheets could not be loaded:</b> ' + f.map(x => esc(x.name) + ' — ' + esc(x.msg)).join('; ') + '. Affected sections keep their previous data (if any). See Settings → Data health.';
+    }
+    if (msg && state.bannerDismissed !== msg) {
+      b.className = 'banner ' + kind; b.hidden = false;
+      b.innerHTML = '<div>' + msg + '</div><button class="x" type="button" aria-label="Dismiss">×</button>';
+      b.querySelector('.x').onclick = () => { state.bannerDismissed = msg; b.hidden = true; };
+    } else b.hidden = true;
+  }
+
+  /* ============================================================== FILTERS */
+  function fillFilters() {
+    if (!state.model) return;
+    const opts = state.model.months.map(m => '<option value="' + m + '">' + monthLong(m) + '</option>').join('');
+    $('fFrom').innerHTML = opts; $('fTo').innerHTML = opts;
+    $('fFrom').value = state.filters.from; $('fTo').value = state.filters.to;
+    $('fDept').innerHTML = '<option value="ALL">All departments</option>' + state.model.depts.map(d => '<option value="' + esc(d) + '">' + esc(d) + '</option>').join('');
+    $('fDept').value = state.filters.dept;
+  }
+  $('fFrom').addEventListener('change', e => {
+    state.filters.from = e.target.value; state.userRange = true;
+    if (state.filters.from > state.filters.to) state.filters.to = state.filters.from;
+    fillFilters(); renderView();
+  });
+  $('fTo').addEventListener('change', e => {
+    state.filters.to = e.target.value; state.userRange = true;
+    if (state.filters.to < state.filters.from) state.filters.from = state.filters.to;
+    fillFilters(); renderView();
+  });
+  $('fDept').addEventListener('change', e => { state.filters.dept = e.target.value; renderView(); });
+  $('fReset').addEventListener('click', () => {
+    state.userRange = false; state.filters.dept = 'ALL';
+    const m = state.model ? state.model.months : [];
+    state.filters.from = m[0] || null; state.filters.to = m[m.length - 1] || null;
+    fillFilters(); renderView();
+  });
+
+  /* =============================================================== CHARTS */
+  const charts = {};
+  const PAL = { indigo: '#4f46e5', sky: '#0ea5e9', green: '#10b981', amber: '#f59e0b', rose: '#f43f5e', violet: '#8b5cf6', teal: '#14b8a6', slate: '#94a3b8' };
+  const STAGE_COLOR = { Applied: PAL.slate, Screening: PAL.sky, Interview: '#6366f1', Assessment: PAL.violet, Offered: PAL.amber, Hired: PAL.green, Rejected: PAL.rose };
+  const GRID = '#eef1f6';
+
+  const valueLabels = {
+    id: 'valueLabels',
+    afterDatasetsDraw(chart, _a, o) {
+      if (!o || !o.format) return;
+      const ctx = chart.ctx, horiz = chart.options.indexAxis === 'y';
+      chart.data.datasets.forEach((ds, i) => {
+        const meta = chart.getDatasetMeta(i);
+        if (meta.hidden) return;
+        meta.data.forEach((el, j) => {
+          const v = ds.data[j];
+          if (v == null) return;
+          ctx.save(); ctx.fillStyle = '#475569'; ctx.font = '600 11px Inter, system-ui, sans-serif'; ctx.textBaseline = 'middle';
+          if (horiz) { ctx.textAlign = 'left'; ctx.fillText(o.format(v), el.x + 6, el.y); }
+          else { ctx.textAlign = 'center'; ctx.fillText(o.format(v), el.x, el.y - 9); }
+          ctx.restore();
+        });
+      });
+    }
+  };
+  const noData = {
+    id: 'noData',
+    afterDraw(chart, _a, o) {
+      if (!o || !o.empty) return;
+      const a = chart.chartArea, ctx = chart.ctx;
+      ctx.save(); ctx.fillStyle = '#94a3b8'; ctx.font = '500 13px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(o.text || 'No data for the selected filters', (a.left + a.right) / 2, (a.top + a.bottom) / 2);
+      ctx.restore();
+    }
+  };
+  const centerText = {
+    id: 'centerText',
+    afterDraw(chart, _a, o) {
+      if (!o || o.title == null) return;
+      const a = chart.chartArea, ctx = chart.ctx, x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2;
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#1e293b'; ctx.font = '700 22px Inter, system-ui, sans-serif'; ctx.fillText(o.title, x, y - 7);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '500 11px Inter, system-ui, sans-serif'; ctx.fillText(o.sub || '', x, y + 13);
+      ctx.restore();
+    }
+  };
+  if (window.Chart) {
+    const D = Chart.defaults;
+    D.font.family = 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif'; D.font.size = 12; D.color = '#64748b';
+    D.plugins.tooltip.backgroundColor = '#0f172a'; D.plugins.tooltip.padding = 10; D.plugins.tooltip.cornerRadius = 8;
+    D.plugins.tooltip.titleFont = { weight: '600' }; D.plugins.tooltip.boxPadding = 4;
+    Chart.register(valueLabels, noData, centerText);
+  }
+
+  function draw(id, cfg) {
+    if (!window.Chart) return;
+    if (charts[id]) charts[id].destroy();
+    const el = $(id);
+    if (el) charts[id] = new Chart(el, cfg);
+  }
+  const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+  const allZero = items => items.every(i => !i.value);
+
+  function barChart(id, items, o) {
+    o = o || {};
+    const horiz = !!o.horizontal, fmt = o.fmt || fInt;
+    const colors = o.colors || items.map(() => o.color || PAL.indigo);
+    const valueAxis = { beginAtZero: true, grace: '10%', grid: { color: GRID }, border: { display: false }, ticks: { precision: 0, callback: v => (o.tick ? o.tick(v) : v) } };
+    if (o.max != null) { valueAxis.max = o.max; delete valueAxis.grace; }
+    const catAxis = { grid: { display: false }, border: { display: false }, ticks: { callback(v) { return trunc(this.getLabelForValue(v), horiz ? 26 : 14); } } };
+    draw(id, {
+      type: 'bar',
+      data: { labels: items.map(i => i.label), datasets: [{ data: items.map(i => i.value), backgroundColor: colors, borderRadius: 6, maxBarThickness: horiz ? 22 : 40, borderSkipped: false }] },
+      options: {
+        indexAxis: horiz ? 'y' : 'x', maintainAspectRatio: false, animation: { duration: 350 },
+        layout: { padding: horiz ? { right: 42 } : { top: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { title: c => items[c[0].dataIndex].label, label: c => (o.tip ? o.tip(items[c.dataIndex]) : fmt(c.parsed[horiz ? 'x' : 'y'])) } },
+          valueLabels: { format: fmt },
+          noData: { empty: !o.allowZero && allZero(items), text: o.emptyText }
+        },
+        scales: horiz ? { x: valueAxis, y: catAxis } : { x: catAxis, y: valueAxis }
+      }
+    });
+  }
+
+  function donut(id, items, o) {
+    o = o || {};
+    const total = items.reduce((a, i) => a + i.value, 0);
+    draw(id, {
+      type: 'doughnut',
+      data: { labels: items.map(i => i.label), datasets: [{ data: items.map(i => i.value), backgroundColor: o.colors, borderColor: '#fff', borderWidth: 2, hoverOffset: 4 }] },
+      options: {
+        maintainAspectRatio: false, cutout: '66%', animation: { duration: 350 },
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14 } },
+          tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fInt(c.parsed) + ' (' + fPct(P(c.parsed, total)) + ')' } },
+          centerText: total ? { title: o.centerTitle != null ? o.centerTitle : fInt(total), sub: o.centerSub || '' } : {},
+          noData: { empty: total === 0, text: o.emptyText }
+        }
+      }
+    });
+  }
+
+  function lineChart(id, labels, values, o) {
+    const nums = values.filter(v => v != null);
+    const yMin = o.min != null ? o.min : 0;
+    draw(id, {
+      type: 'line',
+      data: { labels, datasets: [{ data: values, borderColor: o.color || PAL.indigo, backgroundColor: o.fill || 'rgba(79,70,229,.10)', fill: true, tension: .35, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#fff', pointBorderColor: o.color || PAL.indigo, pointBorderWidth: 2, spanGaps: true }] },
+      options: {
+        maintainAspectRatio: false, animation: { duration: 350 }, interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: 6, right: 8 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { title: c => o.titles[c[0].dataIndex], label: c => o.tip(c.dataIndex), } },
+          noData: { empty: nums.length === 0, text: o.emptyText }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false } },
+          y: { min: yMin, max: o.max, suggestedMax: o.suggestedMax, grid: { color: GRID }, border: { display: false }, ticks: { callback: v => v + '%', maxTicksLimit: 6 } }
+        }
+      }
+    });
+  }
+
+  /* ================================================================ TABLES */
+  const TONE = {
+    status: { Active: 'green', Inactive: 'slate' },
+    type: { Permanent: 'indigo', Contract: 'sky', Intern: 'amber' },
+    stage: { Applied: 'slate', Screening: 'sky', Interview: 'indigo', Assessment: 'violet', Offered: 'amber', Hired: 'green', Rejected: 'rose' },
+    rating: { Excellent: 'green', Good: 'sky', Average: 'amber', 'Needs Improvement': 'rose' },
+    train: { Completed: 'green', 'In Progress': 'amber', 'Not Completed': 'rose' }
+  };
+  const badge = (text, map) => '<span class="badge b-' + ((map && map[text]) || 'slate') + '">' + esc(text) + '</span>';
+
+  function createTable(hostId, cfg) {
+    const host = $(hostId);
+    const st = { q: '', f: cfg.filters.map(() => ''), key: cfg.sortKey, dir: cfg.sortDir || 'asc', page: 1, rows: [] };
+    const size = cfg.pageSize || 10;
+    host.innerHTML =
+      '<div class="table-tools"><label class="search">' + icon('search') + '<input type="search" placeholder="' + esc(cfg.placeholder || 'Search…') + '" aria-label="Search table"></label>' +
+      cfg.filters.map((f, i) => '<label class="sel"><span>' + esc(f.label) + '</span><select data-f="' + i + '"></select></label>').join('') +
+      '<span class="count"></span></div><div class="table-wrap"><table><thead></thead><tbody></tbody></table></div>' +
+      '<div class="pager"><span class="info"></span><div class="btns"><button type="button" data-p="-1">Previous</button><button type="button" data-p="1">Next</button></div></div>';
+    const $q = host.querySelector('input'), $head = host.querySelector('thead'), $body = host.querySelector('tbody');
+    const $info = host.querySelector('.info'), $count = host.querySelector('.count');
+    const $sel = [...host.querySelectorAll('select')], $btn = [...host.querySelectorAll('.pager button')];
+
+    function fillSelects() {
+      cfg.filters.forEach((f, i) => {
+        const opts = (typeof f.options === 'function' ? f.options(st.rows) : f.options).map(o => (typeof o === 'string' ? { value: o, label: o } : o));
+        const all = [{ value: '', label: 'All' }].concat(opts);
+        if (!all.some(o => o.value === st.f[i])) st.f[i] = '';
+        $sel[i].innerHTML = all.map(o => '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>').join('');
+        $sel[i].value = st.f[i];
+      });
+    }
+    function view() {
+      const q = st.q.trim().toLowerCase();
+      let rows = st.rows.filter(r => cfg.filters.every((f, i) => !st.f[i] || f.test(r, st.f[i])));
+      if (q) rows = rows.filter(r => cfg.columns.some(c => String(c.get(r)).toLowerCase().includes(q)));
+      const col = cfg.columns.find(c => c.key === st.key);
+      if (col) {
+        const m = st.dir === 'asc' ? 1 : -1;
+        rows = rows.slice().sort((a, b) => {
+          const x = col.get(a), y = col.get(b);
+          return (col.num ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * m;
+        });
+      }
+      return rows;
+    }
+    function render() {
+      $head.innerHTML = '<tr>' + cfg.columns.map(c => '<th data-k="' + c.key + '" class="' + (c.num ? 'r' : '') + '">' + esc(c.label) + '<span class="arr">' + (st.key === c.key ? (st.dir === 'asc' ? '▲' : '▼') : '') + '</span></th>').join('') + '</tr>';
+      const rows = view();
+      const pages = Math.max(1, Math.ceil(rows.length / size));
+      st.page = Math.min(st.page, pages);
+      const slice = rows.slice((st.page - 1) * size, st.page * size);
+      $body.innerHTML = slice.length
+        ? slice.map(r => '<tr>' + cfg.columns.map(c => '<td class="' + (c.num ? 'r' : '') + '">' + (c.html ? c.html(r) : esc(c.get(r))) + '</td>').join('') + '</tr>').join('')
+        : '<tr><td class="empty" colspan="' + cfg.columns.length + '">No records match the current filters.</td></tr>';
+      const from = rows.length ? (st.page - 1) * size + 1 : 0;
+      $info.textContent = rows.length ? 'Showing ' + from + '–' + Math.min(st.page * size, rows.length) + ' of ' + fInt(rows.length) : 'No results';
+      $count.textContent = fInt(st.rows.length) + ' records';
+      $btn[0].disabled = st.page <= 1; $btn[1].disabled = st.page >= pages;
+    }
+    $q.addEventListener('input', () => { st.q = $q.value; st.page = 1; render(); });
+    $sel.forEach(s => s.addEventListener('change', () => { st.f[+s.dataset.f] = s.value; st.page = 1; render(); }));
+    $head.addEventListener('click', e => {
+      const th = e.target.closest('th'); if (!th) return;
+      if (st.key === th.dataset.k) st.dir = st.dir === 'asc' ? 'desc' : 'asc'; else { st.key = th.dataset.k; st.dir = 'asc'; }
+      render();
+    });
+    $btn.forEach(b => b.addEventListener('click', () => { st.page += +b.dataset.p; render(); }));
+    return { set(rows) { st.rows = rows; fillSelects(); render(); } };
+  }
+
+  const uniq = (rows, fn) => [...new Set(rows.map(fn))].sort();
+  const T = {};
+  function initTables() {
+    T.overview = createTable('tbl-overview', {
+      placeholder: 'Search name, ID, position…', sortKey: 'id',
+      columns: [
+        { key: 'id', label: 'ID', get: r => r.Employee_ID },
+        { key: 'name', label: 'Name', get: r => r.Employee_Name },
+        { key: 'dept', label: 'Department', get: r => r.Department },
+        { key: 'pos', label: 'Position', get: r => r.Position },
+        { key: 'type', label: 'Type', get: r => r.Employment_Status, html: r => badge(r.Employment_Status, TONE.type) },
+        { key: 'join', label: 'Joined', get: r => r.Join_Date, html: r => esc(fDate(r.Join_Date)) },
+        { key: 'status', label: 'Status', get: r => r.derivedStatus, html: r => badge(r.derivedStatus, TONE.status) }
+      ],
+      filters: [
+        { label: 'Status', options: ['Active', 'Inactive'], test: (r, v) => r.derivedStatus === v },
+        { label: 'Type', options: rows => C.EMP_TYPES.concat(uniq(rows, r => r.Employment_Status).filter(x => !C.EMP_TYPES.includes(x))), test: (r, v) => r.Employment_Status === v }
+      ]
+    });
+    T.attendance = createTable('tbl-attendance', {
+      placeholder: 'Search name or ID…', sortKey: 'rate', sortDir: 'asc',
+      columns: [
+        { key: 'id', label: 'ID', get: r => r.id },
+        { key: 'name', label: 'Name', get: r => r.name },
+        { key: 'dept', label: 'Department', get: r => r.dept },
+        { key: 'days', label: 'Working days', num: 1, get: r => r.days },
+        { key: 'present', label: 'Present', num: 1, get: r => r.present },
+        { key: 'late', label: 'Late', num: 1, get: r => r.late },
+        { key: 'absence', label: 'Absence', num: 1, get: r => r.absence },
+        { key: 'leave', label: 'Leave', num: 1, get: r => r.leave },
+        { key: 'rate', label: 'Attendance rate', num: 1, get: r => r.rate, html: r => '<div class="bar-cell"><span>' + fPct(r.rate) + '</span><span class="mini"><i style="width:' + Math.max(0, Math.min(100, r.rate)) + '%;background:' + (r.rate >= 95 ? PAL.green : r.rate >= 90 ? PAL.amber : PAL.rose) + '"></i></span></div>' }
+      ],
+      filters: [{
+        label: 'Attendance rate', options: [{ value: 'hi', label: '95% and above' }, { value: 'mid', label: '90% – 95%' }, { value: 'lo', label: 'Below 90%' }],
+        test: (r, v) => (v === 'hi' ? r.rate >= 95 : v === 'mid' ? r.rate >= 90 && r.rate < 95 : r.rate < 90)
+      }]
+    });
+    T.recruitment = createTable('tbl-recruitment', {
+      placeholder: 'Search candidate, position…', sortKey: 'date', sortDir: 'desc',
+      columns: [
+        { key: 'id', label: 'ID', get: r => r.Candidate_ID },
+        { key: 'name', label: 'Candidate', get: r => r.Candidate_Name },
+        { key: 'pos', label: 'Position', get: r => r.Position },
+        { key: 'dept', label: 'Department', get: r => r.Department },
+        { key: 'date', label: 'Applied', get: r => r.Apply_Date, html: r => esc(fDate(r.Apply_Date)) },
+        { key: 'status', label: 'Status', get: r => r.Status, html: r => badge(r.Status, TONE.stage) }
+      ],
+      filters: [{ label: 'Status', options: C.STAGES, test: (r, v) => r.Status === v }]
+    });
+    T.performance = createTable('tbl-performance', {
+      placeholder: 'Search name or ID…', sortKey: 'date', sortDir: 'desc',
+      columns: [
+        { key: 'id', label: 'ID', get: r => r.Employee_ID },
+        { key: 'name', label: 'Name', get: r => r.Employee_Name },
+        { key: 'dept', label: 'Department', get: r => r.Department },
+        { key: 'period', label: 'Period', get: r => r.Period },
+        { key: 'date', label: 'Evaluated', get: r => r.Evaluation_Date, html: r => esc(fDate(r.Evaluation_Date)) },
+        { key: 'score', label: 'Score (1–5)', num: 1, get: r => r.Score, html: r => fDec(r.Score, 1) },
+        { key: 'level', label: 'Rating', get: r => r.Level, html: r => badge(r.Level, TONE.rating) }
+      ],
+      filters: [
+        { label: 'Rating', options: C.CATEGORIES.map(c => c.name), test: (r, v) => r.Level === v },
+        { label: 'Period', options: rows => uniq(rows, r => r.Period), test: (r, v) => r.Period === v }
+      ]
+    });
+    T.training = createTable('tbl-training', {
+      placeholder: 'Search program, employee…', sortKey: 'date', sortDir: 'desc',
+      columns: [
+        { key: 'pid', label: 'Program ID', get: r => r.Program_ID },
+        { key: 'prog', label: 'Program', get: r => r.Program_Name },
+        { key: 'eid', label: 'Employee ID', get: r => r.Employee_ID },
+        { key: 'name', label: 'Employee', get: r => r.Employee_Name },
+        { key: 'dept', label: 'Department', get: r => r.Department },
+        { key: 'date', label: 'Date', get: r => r.Training_Date, html: r => esc(fDate(r.Training_Date)) },
+        { key: 'hours', label: 'Hours', num: 1, get: r => r.Hours },
+        { key: 'status', label: 'Status', get: r => r.Status, html: r => badge(r.Status, TONE.train) }
+      ],
+      filters: [
+        { label: 'Status', options: C.ENUMS['Training.Status'], test: (r, v) => r.Status === v },
+        { label: 'Program', options: rows => uniq(rows, r => r.Program_Name), test: (r, v) => r.Program_Name === v }
+      ]
+    });
+  }
+
+  /* ================================================================ RENDER */
+  function kpis(id, list) {
+    $(id).innerHTML = list.map(k =>
+      '<div class="kpi" title="' + esc(k.tip || '') + '"><div class="ico t-' + k.tone + '">' + icon(k.icon) + '</div><div><div class="lbl">' + esc(k.label) + '</div><div class="val">' + k.value + '</div><div class="sub">' + esc(k.sub || '') + '</div></div></div>'
+    ).join('');
+  }
+
+  const R = {};
+  R.overview = function () {
+    const o = C.overview(state.model, state.filters), k = o.kpi;
+    kpis('kpi-overview', [
+      { label: 'Total Employees', value: fInt(k.total), sub: 'On record up to ' + monthLong(o.f.to), icon: 'users', tone: 'indigo', tip: 'All employees who joined on or before the end of the selected period (active + inactive)' },
+      { label: 'New Employees', value: fInt(k.newEmployees), sub: 'Joined in selected period', icon: 'userplus', tone: 'green', tip: 'Employees whose join date falls inside the selected period' },
+      { label: 'Active Employees', value: fInt(k.active), sub: fPct(P(k.active, k.total)) + ' of total', icon: 'usercheck', tone: 'sky', tip: 'Employees still employed at the end of the selected period' },
+      { label: 'Inactive Employees', value: fInt(k.inactive), sub: fPct(P(k.inactive, k.total)) + ' of total', icon: 'userx', tone: 'rose', tip: 'Employees who left on or before the end of the selected period' }
+    ]);
+    barChart('ch-ov-dept', o.byDept, { tip: i => ' ' + fInt(i.value) + ' employees' });
+    const gColors = [PAL.indigo, PAL.teal, PAL.amber, PAL.slate];
+    donut('ch-ov-gender', o.byGender, { colors: gColors, centerSub: 'employees' });
+    donut('ch-ov-type', o.byType, { colors: [PAL.indigo, PAL.sky, PAL.amber, PAL.slate], centerSub: 'employees' });
+    T.overview.set(o.table);
+  };
+
+  R.attendance = function () {
+    const o = C.attendance(state.model, state.filters), k = o.kpi;
+    kpis('kpi-attendance', [
+      { label: 'Attendance Rate', value: fPct(k.rate), sub: fInt(k.present + k.late) + ' of ' + fInt(k.days) + ' working days', icon: 'percent', tone: 'indigo', tip: '(Present + Late) ÷ scheduled working days' },
+      { label: 'Present', value: fInt(k.present), sub: 'Arrived on time', icon: 'checkcircle', tone: 'green', tip: 'Days attended on time' },
+      { label: 'Late', value: fInt(k.late), sub: fPct(P(k.late, k.present + k.late)) + ' of attended days', icon: 'clock', tone: 'amber', tip: 'Days attended after the start time' },
+      { label: 'Absence', value: fInt(k.absence), sub: 'Without notice', icon: 'xcircle', tone: 'rose', tip: 'Unexcused absences' },
+      { label: 'Leave', value: fInt(k.leave), sub: 'Approved leave / permission', icon: 'coffee', tone: 'sky', tip: 'Days of approved leave or permission' }
+    ]);
+    const rates = o.trend.map(t => t.rate);
+    const lo = rates.filter(v => v != null);
+    lineChart('ch-at-trend', o.trend.map(t => monthShort(t.month)), rates, {
+      min: lo.length ? Math.max(0, Math.floor(Math.min(...lo) - 4)) : 0, max: 100, titles: o.trend.map(t => monthLong(t.month)),
+      tip: i => { const t = o.trend[i]; return t.rate == null ? ' No data' : [' Attendance rate: ' + fPct(t.rate), ' Present ' + fInt(t.present) + ' · Late ' + fInt(t.late) + ' · Absence ' + fInt(t.absence) + ' · Leave ' + fInt(t.leave)]; }
+    });
+    donut('ch-at-status', o.status, { colors: [PAL.green, PAL.amber, PAL.rose, PAL.sky], centerTitle: fPct(k.rate, 1), centerSub: 'attendance' });
+    barChart('ch-at-late', o.lateByDept, { color: PAL.amber, fmt: v => fPct(v), allowZero: true, tick: v => v + '%', tip: i => [' Late rate: ' + fPct(i.value), ' ' + fInt(i.late) + ' late of ' + fInt(i.attended) + ' attended days'] });
+    T.attendance.set(o.table);
+  };
+
+  R.recruitment = function () {
+    const o = C.recruitment(state.model, state.filters), k = o.kpi;
+    kpis('kpi-recruitment', [
+      { label: 'Total Applicants', value: fInt(k.applicants), sub: 'Applied in selected period', icon: 'filetext', tone: 'indigo', tip: 'All candidates whose application date is inside the period' },
+      { label: 'Open Positions', value: fInt(k.openPositions), sub: 'Vacancies still open', icon: 'briefcase', tone: 'amber', tip: 'Distinct open vacancies that have applicants in the period' },
+      { label: 'Candidates in Process', value: fInt(k.inProcess), sub: 'Screening → Offered', icon: 'loader', tone: 'sky', tip: 'Candidates currently in Screening, Interview, Assessment or Offered' },
+      { label: 'Hired', value: fInt(k.hired), sub: fPct(P(k.hired, k.applicants)) + ' of applicants', icon: 'usercheck', tone: 'green', tip: 'Candidates with status Hired' }
+    ]);
+    barChart('ch-rc-pipe', o.pipeline, { horizontal: true, colors: o.pipeline.map(s => STAGE_COLOR[s.label]), tip: i => ' ' + fInt(i.value) + ' candidates (' + fPct(P(i.value, k.applicants)) + ' of applicants)' });
+    barChart('ch-rc-pos', o.positions, { horizontal: true, color: PAL.indigo, tip: i => ' ' + fInt(i.value) + ' applicants' });
+    barChart('ch-rc-hired', o.hiredByDept, { color: PAL.green, tip: i => ' ' + fInt(i.value) + ' hired', emptyText: 'No hires in the selected period' });
+    T.recruitment.set(o.table);
+  };
+
+  R.performance = function () {
+    const o = C.performance(state.model, state.filters), k = o.kpi;
+    kpis('kpi-performance', [
+      { label: 'Average Performance Score', value: k.evaluated ? fDec(k.avg, 2) + '<small>/ 5</small>' : '—', sub: k.evaluated ? 'Overall rating: ' + C.categoryOf(k.avg) : 'No reviews in this period', icon: 'star', tone: 'indigo', tip: 'Average of each employee’s latest score in the period (scale 1–5)' },
+      { label: 'High Performers', value: fInt(k.highPerformers), sub: 'Score ≥ ' + C.HIGH_PERFORMER_MIN.toFixed(1) + ' (Excellent)', icon: 'award', tone: 'green', tip: 'Employees whose latest score is Excellent' },
+      { label: 'Performance Evaluated', value: fInt(k.evaluated), sub: 'Employees with a review', icon: 'clipboard', tone: 'sky', tip: 'Distinct employees reviewed in the period' }
+    ]);
+    barChart('ch-pf-dept', o.byDept, { color: PAL.indigo, max: 5, fmt: v => fDec(v, 2), tick: v => v, tip: i => i.value == null ? ' No reviews' : [' Average: ' + fDec(i.value, 2) + ' / 5', ' ' + i.n + ' employees reviewed'], allowZero: true });
+    donut('ch-pf-cat', o.categories, { colors: [PAL.green, PAL.sky, PAL.amber, PAL.rose], centerSub: 'employees' });
+    barChart('ch-pf-period', o.periods, { color: PAL.violet, max: 5, fmt: v => fDec(v, 2), tip: i => [' Average: ' + fDec(i.value, 2) + ' / 5', ' ' + i.n + ' reviews'] });
+    T.performance.set(o.table);
+  };
+
+  R.turnover = function () {
+    const o = C.turnover(state.model, state.filters), k = o.kpi;
+    kpis('kpi-turnover', [
+      { label: 'Total Resignations', value: fInt(k.resignations), sub: 'Employees who left', icon: 'logout', tone: 'rose', tip: 'Exits dated inside the selected period' },
+      { label: 'Turnover Rate', value: fPct(k.rate), sub: 'Avg headcount ' + fDec(k.avgHeadcount, 1), icon: 'percent', tone: 'amber', tip: 'Exits ÷ average of headcount at start and end of the period × 100%' },
+      { label: 'New Hires', value: fInt(k.newHires), sub: 'Joined in selected period', icon: 'userplus', tone: 'green', tip: 'Employees whose join date falls inside the selected period' },
+      { label: 'Net Headcount Change', value: (k.net > 0 ? '+' : '') + fInt(k.net), sub: fInt(k.hcStart) + ' → ' + fInt(k.hcEnd) + ' employees', icon: 'trending', tone: k.net >= 0 ? 'sky' : 'rose', tip: 'New hires − resignations' }
+    ]);
+    const labels = o.monthly.map(m => monthShort(m.month));
+    lineChart('ch-tv-trend', labels, o.monthly.map(m => m.rate), {
+      color: PAL.rose, fill: 'rgba(244,63,94,.10)', min: 0, suggestedMax: 5, titles: o.monthly.map(m => monthLong(m.month)),
+      tip: i => { const m = o.monthly[i]; return [' Turnover rate: ' + fPct(m.rate), ' ' + m.exits + ' exit(s) · avg headcount ' + fDec(m.avgHeadcount, 1)]; }
+    });
+    draw('ch-tv-flow', {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label: 'New hires', data: o.monthly.map(m => m.hires), backgroundColor: PAL.green, borderRadius: 6, maxBarThickness: 26 },
+        { label: 'Exits', data: o.monthly.map(m => m.exits), backgroundColor: PAL.rose, borderRadius: 6, maxBarThickness: 26 }] },
+      options: {
+        maintainAspectRatio: false, animation: { duration: 350 }, layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14 } },
+          tooltip: { callbacks: { title: c => monthLong(o.monthly[c[0].dataIndex].month) } },
+          valueLabels: { format: v => (v ? v : '') },
+          noData: { empty: o.monthly.every(m => !m.hires && !m.exits), text: 'No joiners or leavers in the selected period' }
+        },
+        scales: { x: { grid: { display: false }, border: { display: false } }, y: { beginAtZero: true, grace: '10%', grid: { color: GRID }, border: { display: false }, ticks: { precision: 0 } } }
+      }
+    });
+    barChart('ch-tv-reason', o.reasons, { horizontal: true, color: PAL.rose, tip: i => ' ' + fInt(i.value) + ' exit(s) (' + fPct(P(i.value, k.resignations)) + ')', emptyText: 'No resignations in the selected period' });
+    barChart('ch-tv-dept', o.byDept, { color: PAL.amber, fmt: v => fPct(v), tick: v => v + '%', allowZero: true, tip: i => [' Turnover: ' + fPct(i.value), ' ' + i.exits + ' exit(s) · avg headcount ' + fDec(i.avgHeadcount, 1)] });
+  };
+
+  R.training = function () {
+    const o = C.training(state.model, state.filters), k = o.kpi;
+    kpis('kpi-training', [
+      { label: 'Total Training Programs', value: fInt(k.programs), sub: 'Sessions held', icon: 'book', tone: 'indigo', tip: 'Distinct Program_ID in the selected period' },
+      { label: 'Training Participants', value: fInt(k.participants), sub: 'Enrolments', icon: 'users', tone: 'sky', tip: 'One participation record per employee per program' },
+      { label: 'Training Hours', value: fInt(k.hours), sub: 'Hours of completed training', icon: 'clock', tone: 'violet', tip: 'Sum of hours of completed participations' },
+      { label: 'Training Completion Rate', value: fPct(k.completion), sub: fInt(k.completed) + ' of ' + fInt(k.participants) + ' completed', icon: 'checkcircle', tone: 'green', tip: 'Completed ÷ all participations' }
+    ]);
+    barChart('ch-tr-dept', o.byDept, { color: PAL.sky, tip: i => ' ' + fInt(i.value) + ' participants' });
+    barChart('ch-tr-prog', o.programs, { horizontal: true, color: PAL.indigo, tip: i => ' ' + fInt(i.value) + ' participants' });
+    donut('ch-tr-status', o.status, { colors: [PAL.green, PAL.amber, PAL.rose], centerTitle: fPct(k.completion, 0), centerSub: 'completed' });
+    T.training.set(o.table);
+  };
+
+  /* ---------------------------------------------------------------- settings */
+  let schemaBuilt = false;
+  function renderSettings() {
+    if (document.activeElement !== $('urlInput')) $('urlInput').value = state.rawUrl;
+    $('intervalSel').value = String(state.interval);
+    $('healthBody').innerHTML = C.SHEETS.map(s => {
+      const i = state.info[s];
+      let st, det;
+      if (!state.sheetId) { st = '<span class="hint">—</span>'; det = 'Connect a spreadsheet first'; }
+      else if (i.status === 'ok') { st = '<span class="ok-t">Loaded</span>'; det = i.warnings.length ? '<span class="warn-t">' + i.warnings.map(esc).join('<br>') + '</span>' : 'Sheet and columns look good'; }
+      else if (i.status === 'error') { st = '<span class="err-t">' + (i.hasData ? 'Error · showing previous data' : 'Error') + '</span>'; det = esc(i.error); }
+      else { st = '<span class="hint">Pending</span>'; det = '—'; }
+      return '<tr><td><b>' + s + '</b></td><td>' + st + '</td><td class="r">' + (i.status === 'ok' || i.hasData ? fInt(i.rows) : '—') + '</td><td>' + det + '</td></tr>';
+    }).join('');
+    $('crossWarn').innerHTML = state.crossWarnings.length ? '<b class="warn-t">Consistency warnings</b><br>' + state.crossWarnings.map(esc).join('<br>') : '';
+    if (!schemaBuilt) {
+      $('schemaList').innerHTML = C.SHEETS.map(s => '<details><summary>' + s + '</summary><p>' + C.SCHEMA[s].map(c => '<code>' + c.name + '</code>' + (c.required === false ? ' (optional)' : '')).join(' ') + '</p></details>').join('') +
+        '<p class="hint" style="margin-top:10px"><b>Notes</b> — Dates: real date cells or <code>YYYY-MM-DD</code>. Attendance <code>Month</code>: <code>YYYY-MM</code>. Allowed values — Employees.Status: Active / Inactive · Recruitment.Status: ' + C.STAGES.join(', ') + ' · Vacancy_Status: Open / Closed · Training.Status: Completed / In Progress / Not Completed. Performance scores 1–5.</p>';
+      schemaBuilt = true;
+    }
+  }
+  function setMsg(text, kind) { const m = $('urlMsg'); m.textContent = text; m.className = 'hint ' + (kind || ''); }
+
+  async function onSave() {
+    const r = C.extractSheetId($('urlInput').value);
+    if (r.error) { setMsg(r.error, 'err'); return; }
+    if (r.id !== state.sheetId) resetData();
+    state.sheetId = r.id; state.rawUrl = $('urlInput').value.trim(); store.set(K_URL, state.rawUrl);
+    if (new URLSearchParams(location.search).has('sheet')) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) { /* file:// */ } }
+    setMsg('Connecting…'); $('saveBtn').disabled = true;
+    renderChrome();
+    const res = await refresh({ manual: true, quiet: true });
+    $('saveBtn').disabled = false;
+    if (res && res.ok === C.SHEETS.length) { setMsg('Connected — all ' + C.SHEETS.length + ' sheets loaded. Open any section from the menu.', 'ok'); toast('Connected to Google Sheets', 'ok'); }
+    else if (res && res.ok > 0) setMsg('Saved, but ' + res.failures.length + ' sheet(s) have problems. See Data health below.', 'err');
+    else setMsg('Saved, but the spreadsheet could not be read. See the message at the top and Data health below.', 'err');
+    scheduleRefresh();
+    renderSettings();
+  }
+  $('saveBtn').addEventListener('click', onSave);
+  $('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') onSave(); });
+  $('disconnectBtn').addEventListener('click', () => {
+    if (!state.sheetId) return;
+    if (!confirm('Disconnect from this spreadsheet? The dashboard will be cleared until you connect again.')) return;
+    store.del(K_URL); state.sheetId = null; state.rawUrl = ''; state.failures = []; resetData(); clearInterval(timer);
+    $('urlInput').value = ''; setMsg('Disconnected.'); renderChrome(); setConn('idle'); renderView();
+  });
+  $('intervalSel').addEventListener('change', e => { state.interval = +e.target.value; store.set(K_INT, String(state.interval)); scheduleRefresh(); toast('Auto-refresh every ' + state.interval + ' seconds', 'ok'); });
+  $('copyLink').addEventListener('click', async () => {
+    if (!state.sheetId) { setMsg('Connect a spreadsheet first.', 'err'); return; }
+    const link = location.origin + location.pathname + '?sheet=' + state.sheetId;
+    try { await navigator.clipboard.writeText(link); toast('Link copied', 'ok'); } catch (_) { window.prompt('Copy this link:', link); }
+  });
+  $('refreshBtn').addEventListener('click', () => {
+    if (!state.sheetId) { location.hash = '#settings'; toast('Connect a Google Sheet first'); return; }
+    refresh({ manual: true });
+  });
+  $('emptyBtn').addEventListener('click', () => {
+    if (!state.sheetId || state.view === 'settings') location.hash = '#settings';
+    else if (state.hasData) location.hash = '#settings';
+    else refresh({ manual: true });
+  });
+
+  /* -------------------------------------------------------------- navigation */
+  function showEmpty(title, text, btn) {
+    $('emptyState').hidden = false; $('content').hidden = true; $('filters').hidden = true;
+    $('emptyTitle').textContent = title; $('emptyText').textContent = text; $('emptyBtn').textContent = btn;
+  }
+  function renderView() {
+    const v = state.view, meta = VIEWS[v];
+    document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === v));
+    document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
+    $('pageTitle').textContent = meta.title;
+    $('emptyState').hidden = true; $('content').hidden = false;
+    if (v === 'settings') {
+      $('filters').hidden = true; $('pageSub').textContent = 'Connect and monitor your Google Sheets data source';
+      renderSettings(); return;
+    }
+    if (!state.sheetId) { $('pageSub').textContent = 'No data source connected'; showEmpty('Connect your Google Sheet', 'The dashboard has no data of its own. Paste the link of your spreadsheet in Settings and the six sections will fill in automatically.', 'Open Settings'); return; }
+    if (!state.hasData) {
+      $('pageSub').textContent = state.conn === 'load' ? 'Loading data…' : 'Data not available';
+      if (state.conn === 'load' || state.conn === 'idle') showEmpty('Loading data…', 'Reading your spreadsheet from Google Sheets.', 'Refresh Data');
+      else showEmpty('Could not load the spreadsheet', ((state.failures || [])[0] || {}).msg || 'Please check the link and sharing settings, then try again.', 'Try again');
+      return;
+    }
+    const missing = meta.deps.filter(s => !state.info[s].hasData);
+    if (missing.length) {
+      $('pageSub').textContent = 'Data not available';
+      showEmpty('This section needs the “' + missing.join('” and “') + '” sheet', (state.info[missing[0]].error || 'The sheet has not been loaded yet') + '. Fix it in your spreadsheet and the dashboard will pick it up automatically, or check Settings → Data health.', 'Open Settings');
+      return;
+    }
+    if (!window.Chart) { const b = $('banner'); b.className = 'banner err'; b.hidden = false; b.innerHTML = '<div><b>Chart library failed to load.</b> Check your internet connection and reload the page.</div>'; }
+    $('filters').hidden = false;
+    const f = C.normFilter(state.model, state.filters);
+    $('pageSub').textContent = (f.from ? monthLong(f.from) + (f.to !== f.from ? ' – ' + monthLong(f.to) : '') : '') + ' · ' + (f.dept === 'ALL' ? 'All departments' : f.dept);
+    R[v]();
+  }
+  function setView(name) {
+    state.view = VIEWS[name] ? name : 'overview';
+    document.body.classList.remove('nav-open');
+    window.scrollTo(0, 0);
+    renderView();
+  }
+  window.addEventListener('hashchange', () => setView(location.hash.slice(1)));
+  $('menuBtn').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+  $('scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
+
+  /* -------------------------------------------------------------------- init */
+  function init() {
+    initTables();
+    const iv = +store.get(K_INT);
+    if ([30, 45, 60].includes(iv)) state.interval = iv;
+    else if (![30, 45, 60].includes(state.interval)) state.interval = 45;
+    $('companyName').textContent = CONFIG.COMPANY_NAME;
+    const q = new URLSearchParams(location.search).get('sheet');
+    const raw = q || store.get(K_URL) || CONFIG.DEFAULT_SHEET_URL || '';
+    const r = raw ? C.extractSheetId(raw) : {};
+    if (r.id) { state.sheetId = r.id; state.rawUrl = q ? '' : raw; }
+    state.view = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
+    renderChrome(); renderView();
+    if (state.sheetId) { refresh({ manual: false }); scheduleRefresh(); }
+    else if (!location.hash) { /* first visit: stay on overview empty state */ }
+  }
+  window.HRApp = { state, refresh, C };      // handy for debugging in the browser console
+  init();
+})();
+
+</script>
+</body>
+</html>
