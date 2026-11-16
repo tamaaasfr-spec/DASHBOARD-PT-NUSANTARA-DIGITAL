@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HR Management Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706;--soft:#eff6ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:8px 0 16px}
+header h1{font-size:24px}
+header p,.date{color:var(--muted)}
+.date{text-align:right}
+
+.bar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:3px}
+.field.grow{flex:1;min-width:240px}
+label{font-size:12px;color:var(--muted);font-weight:600}
+input,select,button{font:inherit;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;color:var(--text);min-height:38px}
+input:focus,select:focus{outline:2px solid #bfdbfe;border-color:var(--blue)}
+button{cursor:pointer;font-weight:600}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button:disabled{opacity:.6;cursor:wait}
+.status{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9ca3af;margin-right:6px}
+.dot.ok{background:var(--green)}.dot.err{background:var(--red)}.dot.load{background:var(--amber)}
+.hint{font-size:12px;color:var(--muted);margin-top:8px}
+.msg{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.msg.err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.msg.warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+[hidden]{display:none!important}
+details{margin-top:10px;font-size:13px}
+summary{cursor:pointer;font-weight:600;color:var(--blue)}
+details ol{margin:8px 0 0;padding-left:20px;color:#374151}
+details li{margin:3px 0}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;border-top:4px solid var(--blue)}
+.kpi.green{border-top-color:var(--green)}.kpi.amber{border-top-color:var(--amber)}.kpi.red{border-top-color:var(--red)}
+.kpi .l{color:var(--muted);font-size:13px}
+.kpi .v{font-size:30px;font-weight:700;line-height:1.2;margin:2px 0}
+.kpi .s{color:var(--muted);font-size:12px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h2{font-size:16px;margin-bottom:2px}
+.card .sub{color:var(--muted);font-size:12px;margin-bottom:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--soft);border-radius:8px;padding:6px 12px;min-width:86px}
+.chip b{display:block;font-size:18px;line-height:1.2}
+.chip span{font-size:12px;color:var(--muted)}
+.chart{position:relative;height:250px}
+.nums{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.nums .chip{padding:10px 12px}
+.nums .chip b{font-size:22px}
+.full{grid-column:1/-1}
+.note{color:var(--muted);font-size:12px;margin-top:10px}
+
+.tw{overflow:auto;max-height:440px;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:#f8fafc;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+tr:last-child td{border-bottom:0}
+.tag{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.tag.a{background:#dcfce7;color:#166534}.tag.i{background:#f3f4f6;color:#4b5563}
+
+.empty{background:var(--card);border:1px dashed #cbd5e1;border-radius:10px;padding:36px 20px;text-align:center;color:var(--muted)}
+.empty h2{color:var(--text);font-size:18px;margin-bottom:6px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:10px 0 4px}
+
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+@media(max-width:520px){.wrap{padding:12px}header h1{font-size:20px}.date{text-align:left}.kpi .v{font-size:26px}.field{flex:1 1 45%}.field.grow{flex-basis:100%}.chart{height:230px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div><h1>HR Management Dashboard</h1><p id="company"></p></div>
+    <div class="date" id="today"></div>
+  </header>
+
+  <!-- ===== SUMBER DATA ===== -->
+  <section class="bar">
+    <div class="row">
+      <div class="field grow"><label for="url">URL Google Sheets</label>
+        <input id="url" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit" autocomplete="off" spellcheck="false"></div>
+      <button class="primary" id="save" type="button">Simpan &amp; Hubungkan</button>
+      <button id="refresh" type="button">Refresh Data</button>
+    </div>
+    <div class="status">
+      <span><span class="dot" id="dot"></span><span id="state">Belum terhubung</span></span>
+      <span>Last Updated: <b id="updated">-</b></span>
+      <span>Auto-refresh: setiap 60 detik</span>
+    </div>
+    <div class="msg err" id="err" hidden></div>
+    <div class="msg warn" id="warn" hidden></div>
+    <details id="guide">
+      <summary>Cara menghubungkan Google Sheets</summary>
+      <ol>
+        <li>Impor <code>HR_Dataset.xlsx</code> ke Google Sheets (File → Import → Upload). Nama sheet dan kolom jangan diubah.</li>
+        <li>Klik <b>Share</b> → General access → <b>Anyone with the link</b> → peran <b>Viewer</b>.</li>
+        <li>Salin URL dari address bar browser (bentuknya <code>https://docs.google.com/spreadsheets/d/…/edit</code>).</li>
+        <li>Tempel URL di kolom di atas, lalu klik <b>Simpan &amp; Hubungkan</b>.</li>
+      </ol>
+    </details>
+  </section>
+
+  <div class="empty" id="empty">
+    <h2>Dashboard belum terhubung ke data</h2>
+    <p>Tempel URL Google Sheets Anda pada kolom di atas, lalu klik <b>Simpan &amp; Hubungkan</b>.</p>
+  </div>
+
+  <div id="board" hidden>
+
+    <!-- ===== FILTER ===== -->
+    <section class="bar">
+      <div class="row">
+        <div class="field"><label for="from">Dari tanggal</label><input id="from" type="date"></div>
+        <div class="field"><label for="to">Sampai tanggal</label><input id="to" type="date"></div>
+        <div class="field"><label for="dept">Departemen</label><select id="dept"></select></div>
+        <button id="reset" type="button">Reset filter</button>
+      </div>
+    </section>
+
+    <!-- ===== 4 KPI ===== -->
+    <section class="kpis">
+      <div class="kpi"><div class="l">Total Employees</div><div class="v" id="k-total">-</div><div class="s" id="k-total-s"></div></div>
+      <div class="kpi green"><div class="l">Active Employees</div><div class="v" id="k-active">-</div><div class="s" id="k-active-s"></div></div>
+      <div class="kpi amber"><div class="l">Attendance Rate</div><div class="v" id="k-att">-</div><div class="s" id="k-att-s"></div></div>
+      <div class="kpi red"><div class="l">Employee Turnover Rate</div><div class="v" id="k-turn">-</div><div class="s" id="k-turn-s"></div></div>
+    </section>
+
+    <!-- ===== 1. EMPLOYEE OVERVIEW & 2. ATTENDANCE ===== -->
+    <section class="grid">
+      <div class="card">
+        <h2>Employee Overview</h2><p class="sub">Karyawan aktif per departemen pada akhir periode</p>
+        <div class="chips">
+          <div class="chip"><b id="o-total">-</b><span>Total karyawan</span></div>
+          <div class="chip"><b id="o-active">-</b><span>Karyawan aktif</span></div>
+          <div class="chip"><b id="o-new">-</b><span>Karyawan baru</span></div>
+        </div>
+        <div class="chart"><canvas id="c-dept"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Attendance</h2><p class="sub">Komposisi status kehadiran (jumlah catatan absensi harian)</p>
+        <div class="chips">
+          <div class="chip"><b id="a-hadir">-</b><span>Hadir</span></div>
+          <div class="chip"><b id="a-late">-</b><span>Terlambat</span></div>
+          <div class="chip"><b id="a-leave">-</b><span>Izin / Cuti</span></div>
+          <div class="chip"><b id="a-rate">-</b><span>Kehadiran</span></div>
+        </div>
+        <div class="chart"><canvas id="c-att"></canvas></div>
+        <p class="note">Persentase kehadiran = Hadir ÷ seluruh catatan absensi (Hadir, Terlambat, Izin, Cuti, Alpha) × 100%.</p>
+      </div>
+    </section>
+
+    <!-- ===== 3. RECRUITMENT & 4. PERFORMANCE ===== -->
+    <section class="grid">
+      <div class="card">
+        <h2>Recruitment</h2><p class="sub">Pelamar yang mendaftar pada periode terpilih</p>
+        <div class="nums">
+          <div class="chip"><b id="r-app">-</b><span>Total pelamar</span></div>
+          <div class="chip"><b id="r-open">-</b><span>Lowongan tersedia</span></div>
+          <div class="chip"><b id="r-proc">-</b><span>Kandidat dalam proses seleksi</span></div>
+          <div class="chip"><b id="r-hired">-</b><span>Kandidat diterima</span></div>
+        </div>
+        <p class="note" style="margin:0">Lowongan tersedia = lowongan berstatus Open yang memiliki pelamar pada periode ini.</p>
+      </div>
+      <div class="card">
+        <h2>Employee Performance</h2><p class="sub">Rata-rata nilai per departemen (skala 1–5)</p>
+        <div class="chips">
+          <div class="chip"><b id="p-avg">-</b><span>Rata-rata nilai</span></div>
+          <div class="chip"><b id="p-good">-</b><span>Kinerja tinggi (≥ 4,0)</span></div>
+        </div>
+        <div class="chart" style="height:200px"><canvas id="c-perf"></canvas></div>
+        <p class="note" id="p-note"></p>
+      </div>
+    </section>
+
+    <!-- ===== 5. EMPLOYEE TURNOVER ===== -->
+    <section class="grid">
+      <div class="card full">
+        <h2>Employee Turnover</h2><p class="sub">Karyawan bergabung dan keluar per bulan</p>
+        <div class="chips">
+          <div class="chip"><b id="t-in">-</b><span>Karyawan bergabung</span></div>
+          <div class="chip"><b id="t-out">-</b><span>Karyawan keluar</span></div>
+          <div class="chip"><b id="t-rate">-</b><span>Turnover</span></div>
+        </div>
+        <div class="chart"><canvas id="c-turn"></canvas></div>
+        <p class="note">Dihitung dari Join_Date, Status, dan Exit_Date pada sheet Employees. Turnover = karyawan keluar ÷ rata-rata jumlah karyawan awal dan akhir periode × 100%.</p>
+      </div>
+    </section>
+
+    <!-- ===== TABEL KARYAWAN ===== -->
+    <section class="card">
+      <h2>Daftar Karyawan</h2><p class="sub" id="tbl-sub"></p>
+      <div class="tw"><table>
+        <thead><tr><th>Employee ID</th><th>Nama</th><th>Departemen</th><th>Jabatan</th><th>Tanggal Masuk</th><th>Status</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <footer>Data bersumber dari Google Sheets · dashboard dengan data fiktif untuk keperluan akademik</footer>
+</div>
+
+<script>
+/* =====================================================================
+ * 1. PENGATURAN
+ * ===================================================================== */
+const CONFIG = {
+  COMPANY: 'PT Maju Bersama Sejahtera',   // nama perusahaan fiktif
+  SHEET_URL: '',                          // opsional: isi URL Google Sheets agar semua pengunjung langsung terhubung
+  REFRESH_SECONDS: 60                     // pembaruan otomatis
+};
+
+// Struktur sheet yang dibutuhkan. Tipe: s=teks, d=tanggal, m=bulan (YYYY-MM), n=angka. Tanda ? = boleh kosong.
+const SCHEMA = {
+  Employees:   { Employee_ID: 's', Employee_Name: 's', Department: 's', Position: 's', Join_Date: 'd', Status: 's', Exit_Date: 'd?' },
+  Attendance:  { Date: 'd', Employee_ID: 's', Status: 's' },
+  Recruitment: { Candidate_ID: 's', Candidate_Name: 's', Vacancy_ID: 's', Position: 's', Department: 's', Apply_Date: 'd', Selection_Stage: 's', Result: 's', Vacancy_Status: 's' },
+  Performance: { Employee_ID: 's', Period: 'm', Score: 'n' }
+};
+const ENUM = {
+  'Employees.Status': ['Active', 'Inactive'],
+  'Attendance.Status': ['Hadir', 'Terlambat', 'Izin', 'Cuti', 'Alpha'],
+  'Recruitment.Selection_Stage': ['Applied', 'Screening', 'Interview', 'Offering'],
+  'Recruitment.Result': ['Dalam Proses', 'Diterima', 'Ditolak'],
+  'Recruitment.Vacancy_Status': ['Open', 'Closed']
+};
+const HIGH_SCORE = 4.0;   // kinerja tinggi jika rata-rata nilai karyawan >= 4,0
+
+/* =====================================================================
+ * 2. PENGAMBILAN DATA (Google Sheets Visualization API)
+ * ===================================================================== */
+const pad = n => String(n).padStart(2, '0');
+const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function extractSheetId(text) {
+  const s = String(text || '').trim();
+  if (!s) return { error: 'Tempel URL Google Sheets terlebih dahulu.' };
+  if (/\/spreadsheets\/d\/e\//.test(s)) return { error: 'Ini link "Publish to web". Gunakan link biasa dari tombol Share atau dari address bar browser.' };
+  const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{15,})/);
+  if (m) return { id: m[1] };
+  return { error: 'URL tidak valid. Contoh: https://docs.google.com/spreadsheets/d/xxxx/edit' };
+}
+
+async function fetchSheet(id, name) {
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(name) + '&_=' + Date.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  let text;
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) throw new Error('Spreadsheet tidak ditemukan atau belum dibagikan (kode ' + res.status + ').');
+    text = await res.text();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Waktu koneksi habis. Coba lagi.');
+    if (e instanceof TypeError) throw new Error('Tidak dapat terhubung ke Google Sheets. Periksa koneksi internet Anda.');
+    throw e;
+  } finally { clearTimeout(timer); }
+  const m = text.match(/setResponse\(([\s\S]*)\)\s*;?\s*$/);
+  if (!m) throw new Error('Spreadsheet tidak bisa dibaca. Pastikan akses diatur ke "Anyone with the link – Viewer".');
+  let obj;
+  try { obj = JSON.parse(m[1]); } catch (_) { throw new Error('Respons dari Google Sheets tidak dapat dibaca.'); }
+  if (obj.status === 'error') {
+    const er = (obj.errors && obj.errors[0]) || {};
+    throw new Error('Sheet "' + name + '" tidak ditemukan atau tidak dapat dibaca' + (er.detailed_message ? ' (' + er.detailed_message + ')' : '') + '.');
+  }
+  const t = obj.table;
+  let headers = t.cols.map(c => c.label || '');
+  let rows = t.rows.map(r => t.cols.map((_, i) => (r.c && r.c[i] ? r.c[i].v : null)));
+  if (headers.every(h => !h.trim()) && rows.length) { headers = rows[0].map(v => (v == null ? '' : String(v))); rows = rows.slice(1); }
+  return { headers, rows };
+}
+
+/* =====================================================================
+ * 3. PENGOLAHAN DATA: validasi + konversi tipe
+ * ===================================================================== */
+function toDate(v) {
+  if (typeof v !== 'string') return null;
+  let m = v.match(/^Date\((\d+),\s*(\d+),\s*(\d+)/);                  // format tanggal Google Sheets (bulan mulai dari 0)
+  if (m) return m[1] + '-' + pad(+m[2] + 1) + '-' + pad(+m[3]);
+  m = v.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
+  return null;
+}
+function toMonth(v) {
+  if (v == null) return null;
+  const s = String(v).trim(), m = s.match(/^(\d{4})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + pad(+m[2]);
+  const d = toDate(s);
+  return d ? d.slice(0, 7) : null;
+}
+function toNum(v) {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string' && v.trim() !== '' && isFinite(Number(v.replace(',', '.')))) return Number(v.replace(',', '.'));
+  return null;
+}
+
+// Mengubah hasil mentah satu sheet menjadi array objek. Melempar error jika kolom tidak lengkap.
+function buildSheet(name, raw) {
+  const schema = SCHEMA[name], idx = {};
+  raw.headers.forEach((h, i) => { if (!(norm(h) in idx)) idx[norm(h)] = i; });
+  const missing = Object.keys(schema).filter(c => !(norm(c) in idx));
+  if (missing.length) throw new Error('Sheet "' + name + '": kolom ' + missing.join(', ') + ' tidak ditemukan. Periksa penulisan nama kolom.');
+  const rows = []; let skipped = 0;
+  raw.rows.forEach(r => {
+    if (r.every(v => v == null || String(v).trim() === '')) return;
+    const o = {}; let ok = true;
+    for (const col in schema) {
+      const t = schema[col], optional = t.endsWith('?'), type = t[0], v = r[idx[norm(col)]];
+      let x = type === 'd' ? toDate(v) : type === 'm' ? toMonth(v) : type === 'n' ? toNum(v) : (v == null ? '' : String(v).trim());
+      if (x === null || x === '') { if (!optional) { ok = false; break; } x = null; }
+      const list = ENUM[name + '.' + col];
+      if (list && x !== null) { const c = list.find(e => norm(e) === norm(x)); if (!c) { ok = false; break; } x = c; }
+      o[col] = x;
+    }
+    if (ok) rows.push(o); else skipped++;
+  });
+  return { rows, skipped };
+}
+
+/* =====================================================================
+ * 4. PERHITUNGAN KPI (tanpa akses DOM)
+ * ===================================================================== */
+const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return ym + '-' + pad(new Date(Date.UTC(y, m, 0)).getUTCDate()); };
+function dayBefore(day) { const [y, m, d] = day.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d - 1)); return t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate()); }
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const mean = a => (a.length ? sum(a, x => x) / a.length : null);
+
+// Menyiapkan data: tanggal keluar per karyawan, batas tanggal data, daftar departemen.
+function prepare(data) {
+  const employees = data.Employees.map(e => Object.assign({}, e, { exit: e.Exit_Date || (e.Status === 'Inactive' ? '1900-01-01' : null) }));
+  const byId = new Map(employees.map(e => [e.Employee_ID, e]));
+  const dates = [];
+  data.Attendance.forEach(r => dates.push(r.Date));
+  data.Recruitment.forEach(r => dates.push(r.Apply_Date));
+  data.Performance.forEach(r => { dates.push(r.Period + '-01'); dates.push(lastDay(r.Period)); });
+  employees.forEach(e => { if (e.Exit_Date) dates.push(e.Exit_Date); });
+  dates.sort();
+  const depts = [...new Set(employees.map(e => e.Department))].sort();
+  return { employees, byId, depts, minDate: dates[0] || null, maxDate: dates[dates.length - 1] || null, attendance: data.Attendance, recruitment: data.Recruitment, performance: data.Performance };
+}
+
+// daftar bulan (YYYY-MM) yang beririsan dengan rentang tanggal
+function monthsBetween(from, to) {
+  const out = []; let [y, m] = from.slice(0, 7).split('-').map(Number); const end = to.slice(0, 7);
+  for (;;) { const k = y + '-' + pad(m); out.push(k); if (k >= end) break; if (++m > 12) { m = 1; y++; } }
+  return out;
+}
+
+// f = { from:'YYYY-MM-DD', to:'YYYY-MM-DD', dept:'ALL' | nama departemen }
+function calculate(model, f) {
+  const start = f.from, end = f.to;
+  const okDept = d => f.dept === 'ALL' || d === f.dept;
+  const deptOf = id => (model.byId.get(id) || {}).Department;
+  const headcount = (day, dept) => model.employees.filter(e => (dept === 'ALL' || e.Department === dept) && e.Join_Date <= day && (!e.exit || e.exit > day)).length;
+  const deptList = f.dept === 'ALL' ? model.depts : [f.dept];
+
+  // 1. Employee overview
+  const scope = model.employees.filter(e => okDept(e.Department) && e.Join_Date <= end)
+    .map(e => Object.assign({}, e, { active: !(e.exit && e.exit <= end) }));
+  const overview = {
+    total: scope.length, active: scope.filter(e => e.active).length,
+    added: scope.filter(e => e.Join_Date >= start).length,
+    byDept: deptList.map(d => ({ label: d, value: scope.filter(e => e.active && e.Department === d).length }))
+  };
+
+  // 2. Attendance: satu baris = satu catatan harian. Persentase kehadiran = Hadir / seluruh catatan.
+  const att = model.attendance.filter(r => r.Date >= start && r.Date <= end && model.byId.has(r.Employee_ID) && okDept(deptOf(r.Employee_ID)));
+  const cnt = s => att.filter(r => r.Status === s).length;
+  const attendance = { total: att.length, hadir: cnt('Hadir'), late: cnt('Terlambat'), izin: cnt('Izin'), cuti: cnt('Cuti'), alpha: cnt('Alpha') };
+  attendance.rate = att.length ? attendance.hadir / att.length * 100 : null;
+
+  // 3. Recruitment (berdasarkan tanggal melamar)
+  const rec = model.recruitment.filter(r => r.Apply_Date >= start && r.Apply_Date <= end && okDept(r.Department));
+  const recruitment = {
+    applicants: rec.length,
+    open: new Set(rec.filter(r => r.Vacancy_Status === 'Open').map(r => r.Vacancy_ID)).size,
+    inProcess: rec.filter(r => r.Result === 'Dalam Proses').length,
+    hired: rec.filter(r => r.Result === 'Diterima').length
+  };
+
+  // 4. Performance: penilaian bulan yang beririsan dengan periode; rata-rata per karyawan lalu dirata-ratakan
+  const per = new Map();
+  model.performance.filter(r => lastDay(r.Period) >= start && r.Period + '-01' <= end && model.byId.has(r.Employee_ID) && okDept(deptOf(r.Employee_ID)))
+    .forEach(r => { if (!per.has(r.Employee_ID)) per.set(r.Employee_ID, []); per.get(r.Employee_ID).push(r.Score); });
+  const empAvg = [...per.entries()].map(([id, s]) => ({ id, dept: deptOf(id), avg: mean(s) }));
+  const performance = {
+    avg: mean(empAvg.map(e => e.avg)), high: empAvg.filter(e => e.avg >= HIGH_SCORE).length, evaluated: empAvg.length,
+    byDept: deptList.map(d => ({ label: d, value: mean(empAvg.filter(e => e.dept === d).map(e => e.avg)) }))
+  };
+
+  // 5. Turnover: dari Join_Date, Status dan Exit_Date di sheet Employees
+  const joiners = model.employees.filter(e => okDept(e.Department) && e.Join_Date >= start && e.Join_Date <= end);
+  const leavers = model.employees.filter(e => okDept(e.Department) && e.exit && e.exit >= start && e.exit <= end);
+  const hcStart = headcount(dayBefore(start), f.dept), hcEnd = headcount(end, f.dept), avgHc = (hcStart + hcEnd) / 2;
+  const turnover = {
+    in: joiners.length, out: leavers.length, hcStart, hcEnd, avgHc, rate: avgHc ? leavers.length / avgHc * 100 : null,
+    monthly: monthsBetween(start, end).map(m => ({ label: m, in: joiners.filter(e => e.Join_Date.slice(0, 7) === m).length, out: leavers.filter(e => e.exit.slice(0, 7) === m).length }))
+  };
+  return { f, overview, attendance, recruitment, performance, turnover, table: scope.sort((a, b) => a.Employee_ID.localeCompare(b.Employee_ID, undefined, { numeric: true })) };
+}
+
+/* =====================================================================
+ * 5. TAMPILAN (DOM + Chart.js)
+ * ===================================================================== */
+const $ = id => document.getElementById(id);
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const monthLabel = ym => BULAN[+ym.slice(5, 7) - 1] + ' ' + ym.slice(0, 4);
+const dateLabel = d => +d.slice(8, 10) + ' ' + BULAN[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4);
+const int = n => new Intl.NumberFormat('id-ID').format(n);
+const pct = n => (n == null ? '-' : n.toFixed(1).replace('.', ',') + '%');
+const dec = n => (n == null ? '-' : n.toFixed(2).replace('.', ','));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const set = (id, v) => { $(id).textContent = v; };
+
+const charts = {};
+const noData = { id: 'noData', afterDraw(c) { if (c.data.datasets.some(d => d.data.some(v => v))) return; const a = c.chartArea, x = c.ctx; x.save(); x.fillStyle = '#9ca3af'; x.textAlign = 'center'; x.font = '13px system-ui'; x.fillText('Tidak ada data pada filter ini', (a.left + a.right) / 2, (a.top + a.bottom) / 2); x.restore(); } };
+function drawChart(id, cfg) {
+  if (!window.Chart) return;
+  if (charts[id]) charts[id].destroy();
+  cfg.plugins = (cfg.plugins || []).concat([noData]);
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false }, cfg.options);
+  charts[id] = new Chart($(id), cfg);
+}
+const axisY = o => Object.assign({ beginAtZero: true, grid: { color: '#eef0f4' }, ticks: { precision: 0 } }, o);
+
+function render(r) {
+  const { overview: o, attendance: a, recruitment: rc, performance: p, turnover: t } = r;
+  // KPI
+  set('k-total', int(o.total)); set('k-total-s', 'Terdaftar sampai ' + dateLabel(r.f.to));
+  set('k-active', int(o.active)); set('k-active-s', int(o.total - o.active) + ' tidak aktif · ' + int(o.added) + ' baru');
+  set('k-att', pct(a.rate)); set('k-att-s', int(a.hadir) + ' hadir dari ' + int(a.total) + ' catatan');
+  set('k-turn', pct(t.rate)); set('k-turn-s', int(t.out) + ' keluar · rata-rata ' + t.avgHc.toFixed(1).replace('.', ',') + ' karyawan');
+  // angka ringkasan
+  set('o-total', int(o.total)); set('o-active', int(o.active)); set('o-new', int(o.added));
+  set('a-hadir', int(a.hadir)); set('a-late', int(a.late)); set('a-leave', int(a.izin + a.cuti)); set('a-rate', pct(a.rate));
+  set('r-app', int(rc.applicants)); set('r-open', int(rc.open)); set('r-proc', int(rc.inProcess)); set('r-hired', int(rc.hired));
+  set('p-avg', dec(p.avg)); set('p-good', int(p.high));
+  set('p-note', p.evaluated ? int(p.evaluated) + ' karyawan dinilai pada periode ini.' : 'Belum ada penilaian kinerja pada periode ini.');
+  set('t-in', int(t.in)); set('t-out', int(t.out)); set('t-rate', pct(t.rate));
+
+  // Grafik 1: distribusi karyawan per departemen
+  drawChart('c-dept', { type: 'bar',
+    data: { labels: o.byDept.map(x => x.label), datasets: [{ label: 'Karyawan aktif', data: o.byDept.map(x => x.value), backgroundColor: '#2563eb', borderRadius: 5, maxBarThickness: 46 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: axisY({ grace: '10%' }) } } });
+  // Grafik 2: komposisi status kehadiran
+  const st = [['Hadir', a.hadir, '#16a34a'], ['Terlambat', a.late, '#d97706'], ['Izin', a.izin, '#0ea5e9'], ['Cuti', a.cuti, '#8b5cf6'], ['Alpha', a.alpha, '#dc2626']];
+  drawChart('c-att', { type: 'doughnut',
+    data: { labels: st.map(x => x[0]), datasets: [{ data: st.map(x => x[1]), backgroundColor: st.map(x => x[2]), borderColor: '#fff', borderWidth: 2 }] },
+    options: { cutout: '60%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } },
+      tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + int(c.parsed) + ' (' + pct(a.total ? c.parsed / a.total * 100 : 0) + ')' } } } } });
+  // Grafik 3: kinerja per departemen
+  drawChart('c-perf', { type: 'bar',
+    data: { labels: p.byDept.map(x => x.label), datasets: [{ label: 'Rata-rata nilai', data: p.byDept.map(x => x.value), backgroundColor: '#d97706', borderRadius: 5, maxBarThickness: 46 }] },
+    options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' Rata-rata: ' + dec(c.parsed.y) + ' / 5' } } },
+      scales: { x: { grid: { display: false } }, y: axisY({ max: 5, ticks: { stepSize: 1 } }) } } });
+  // Grafik 4: karyawan bergabung & keluar per bulan
+  drawChart('c-turn', { type: 'bar',
+    data: { labels: t.monthly.map(x => monthLabel(x.label)), datasets: [
+      { label: 'Bergabung', data: t.monthly.map(x => x.in), backgroundColor: '#16a34a', borderRadius: 5, maxBarThickness: 34 },
+      { label: 'Keluar', data: t.monthly.map(x => x.out), backgroundColor: '#dc2626', borderRadius: 5, maxBarThickness: 34 }] },
+    options: { plugins: { legend: { position: 'bottom' } }, scales: { x: { grid: { display: false } }, y: axisY({ grace: '10%', ticks: { precision: 0, stepSize: 1 } }) } } });
+
+  // Tabel karyawan
+  set('tbl-sub', int(r.table.length) + ' karyawan · status per ' + dateLabel(r.f.to));
+  $('tbody').innerHTML = r.table.map(e => '<tr><td>' + esc(e.Employee_ID) + '</td><td>' + esc(e.Employee_Name) + '</td><td>' + esc(e.Department) + '</td><td>' + esc(e.Position) + '</td><td>' + dateLabel(e.Join_Date) + '</td><td><span class="tag ' + (e.active ? 'a">Aktif' : 'i">Tidak aktif') + '</span></td></tr>').join('')
+    || '<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:20px">Tidak ada karyawan pada filter ini</td></tr>';
+}
+
+/* =====================================================================
+ * 6. KONTROL: koneksi, filter, auto-refresh
+ * ===================================================================== */
+const EMPTY = () => ({ Employees: [], Attendance: [], Recruitment: [], Performance: [] });
+const app = { id: null, data: EMPTY(), loaded: {}, model: null, f: { from: null, to: null, dept: 'ALL' }, busy: false, timer: null, userRange: false };
+const store = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
+
+function setState(kind, text) { $('dot').className = 'dot ' + kind; set('state', text); }
+function showMsg(id, text) { $(id).hidden = !text; $(id).textContent = text || ''; }
+const stamp = d => d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+function showToday() { set('today', new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })); }
+
+async function loadData() {
+  if (!app.id || app.busy) return;
+  app.busy = true; $('refresh').disabled = true; $('save').disabled = true;
+  setState('load', 'Mengambil data…');
+  const names = Object.keys(SCHEMA), errors = [], warns = [];
+  const res = await Promise.all(names.map(async n => {
+    try { return { n, built: buildSheet(n, await fetchSheet(app.id, n)) }; }
+    catch (e) { return { n, error: e.message }; }
+  }));
+  res.forEach(r => {
+    if (r.error) { errors.push(r.error); return; }
+    app.data[r.n] = r.built.rows; app.loaded[r.n] = true;
+    if (r.built.skipped) warns.push('Sheet "' + r.n + '": ' + r.built.skipped + ' baris diabaikan karena data kosong atau nilainya tidak valid.');
+  });
+  app.busy = false; $('refresh').disabled = false; $('save').disabled = false;
+  const ready = names.every(n => app.loaded[n]);
+  if (errors.length < names.length) set('updated', stamp(new Date()));
+  if (ready && errors.length < names.length) {
+    app.model = prepare(app.data);
+    const mo = app.model;
+    if (!app.userRange || !app.f.from || !app.f.to) { app.f.from = mo.minDate; app.f.to = mo.maxDate; app.userRange = false; }
+    if (app.f.dept !== 'ALL' && !mo.depts.includes(app.f.dept)) app.f.dept = 'ALL';
+    const ids = new Set(app.data.Employees.map(e => e.Employee_ID));
+    const orphan = new Set([...app.data.Attendance, ...app.data.Performance].filter(r => !ids.has(r.Employee_ID)).map(r => r.Employee_ID));
+    if (orphan.size) warns.push('Ada Employee_ID di Attendance/Performance yang tidak ada di sheet Employees (' + [...orphan].slice(0, 3).join(', ') + '). Baris tersebut tidak dihitung.');
+    fillFilters(); update();
+  }
+  if (errors.length) {
+    setState('err', ready ? 'Sebagian data gagal diperbarui' : 'Gagal terhubung');
+    showMsg('err', [...new Set(errors)].join(' ') + (ready ? ' Dashboard masih menampilkan data terakhir yang berhasil dimuat.' : ''));
+  } else { setState('ok', 'Terhubung'); showMsg('err', ''); }
+  showMsg('warn', warns.join(' '));
+  $('empty').hidden = ready;
+  $('board').hidden = !ready;
+  if (!ready) $('empty').innerHTML = '<h2>Data belum dapat ditampilkan</h2><p>Perbaiki pesan kesalahan di atas, lalu klik <b>Refresh Data</b>.</p>';
+}
+
+function fillFilters() {
+  const mo = app.model;
+  $('from').min = $('to').min = mo.minDate; $('from').max = $('to').max = mo.maxDate;
+  $('from').value = app.f.from; $('to').value = app.f.to;
+  $('dept').innerHTML = '<option value="ALL">Semua departemen</option>' + mo.depts.map(d => '<option>' + esc(d) + '</option>').join('');
+  $('dept').value = app.f.dept;
+}
+function update() {
+  if (!app.model) return;
+  set('company', CONFIG.COMPANY);
+  render(calculate(app.model, app.f));
+}
+function onDate(which) {
+  const v = $(which).value;
+  if (!v) { $(which).value = app.f[which]; return; }          // kolom dikosongkan -> kembalikan nilai sebelumnya
+  app.f[which] = v; app.userRange = true;
+  if (app.f.from > app.f.to) { if (which === 'from') { app.f.to = v; $('to').value = v; } else { app.f.from = v; $('from').value = v; } }
+  update();
+}
+$('from').addEventListener('change', () => onDate('from'));
+$('to').addEventListener('change', () => onDate('to'));
+$('dept').addEventListener('change', e => { app.f.dept = e.target.value; update(); });
+$('reset').addEventListener('click', () => { app.userRange = false; app.f.dept = 'ALL'; app.f.from = app.model.minDate; app.f.to = app.model.maxDate; fillFilters(); update(); });
+
+function connect() {
+  const r = extractSheetId($('url').value);
+  if (r.error) { showMsg('err', r.error); setState('err', 'URL tidak valid'); return; }
+  if (r.id !== app.id) { app.data = EMPTY(); app.loaded = {}; app.model = null; app.userRange = false; }
+  app.id = r.id; store.set('hr.sheetUrl', $('url').value.trim());
+  showMsg('err', '');
+  loadData(); startTimer();
+}
+function startTimer() {
+  clearInterval(app.timer);
+  app.timer = setInterval(() => { showToday(); if (!document.hidden) loadData(); }, CONFIG.REFRESH_SECONDS * 1000);
+}
+$('save').addEventListener('click', connect);
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+$('refresh').addEventListener('click', () => {
+  if (!app.id) { showMsg('err', 'Masukkan URL Google Sheets terlebih dahulu, lalu klik Simpan & Hubungkan.'); return; }
+  loadData();
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) showToday(); });
+
+(function init() {
+  set('company', CONFIG.COMPANY); showToday();
+  const saved = CONFIG.SHEET_URL || store.get('hr.sheetUrl') || '';
+  $('url').value = saved;
+  if (saved && extractSheetId(saved).id) connect();
+})();
+</script>
+</body>
+</html>
