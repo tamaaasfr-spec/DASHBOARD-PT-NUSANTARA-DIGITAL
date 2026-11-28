@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nusantara Museum Insights</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='24' fill='%23142046'/%3E%3Cpath d='M24 8l7 8H17zM24 13l12 11H12zM14 26h4v11h-4zM22 26h4v11h-4zM30 26h4v11h-4zM10 38h28v3H10z' fill='%23d9a94a'/%3E%3C/svg%3E">
+
+<!-- =====================================================================
+     KONFIGURASI (isi sekali, lalu simpan)
+     SHEET_URL : tempel URL Google Sheets Anda, contoh:
+                 'https://docs.google.com/spreadsheets/d/XXXXXXXX/edit'
+                 (spreadsheet harus dibagikan: Anyone with the link -> Viewer)
+     Selebihnya opsional. Panduan lengkap ada di README.txt
+     ===================================================================== -->
+<script id="config">
+window.APP_CONFIG = {
+  SHEET_URL: '',
+  REFRESH_SECONDS: 10,
+  BRAND: 'Nusantara Museum Insights',
+  // nama tab pada Google Sheets (ubah hanya jika Anda mengganti nama tab)
+  SHEETS: { Visitors: 'Visitors', Tickets: 'Tickets', Galleries: 'Galleries', Exhibitions: 'Exhibitions', Events: 'Events', Feedback: 'Visitor Feedback' }
+};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#142046;--night2:#1d2d5c;--maroon:#6b1f2a;--terra:#b85c38;--gold:#b8893a;--gold2:#e0b865;--sand:#d9c39a;
+  --bg:#f6f0e2;--card:#fffdf7;--ink:#1c2036;--muted:#7a7566;--line:#e8dfc9;--soft:#f3ead5;
+  --shadow:0 1px 2px rgba(20,32,70,.05),0 8px 24px -12px rgba(20,32,70,.18);
+  --hero:linear-gradient(112deg,#101a3a 0%,#1d2d5c 52%,#58213a 108%);
+  --goldline:linear-gradient(90deg,#b8893a,#e0b865);
+  --serif:"Cormorant Garamond","Palatino Linotype",Georgia,serif
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;background:var(--hero);color:#fff;padding:22px 0 84px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;opacity:.5;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56' fill='none' stroke='%23e0b865' stroke-opacity='.22' stroke-width='1'%3E%3Cellipse cx='28' cy='14' rx='7' ry='14'/%3E%3Cellipse cx='28' cy='42' rx='7' ry='14'/%3E%3Cellipse cx='14' cy='28' rx='14' ry='7'/%3E%3Cellipse cx='42' cy='28' rx='14' ry='7'/%3E%3C/svg%3E");
+  -webkit-mask-image:linear-gradient(100deg,transparent 30%,#000 100%);mask-image:linear-gradient(100deg,transparent 30%,#000 100%)}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;opacity:.8;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cpath d='M0 12L12 0l12 12z' fill='%23b8893a'/%3E%3Cpath d='M7 12l5-5 5 5z' fill='%23142046'/%3E%3C/svg%3E") repeat-x}
+.hero .wrap{position:relative;z-index:1}
+.top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.brandbox{display:flex;align-items:center;gap:14px;min-width:0}
+.logo{width:54px;height:54px;flex:none}
+.brandbox h1{font:700 30px/1.05 var(--serif);letter-spacing:.2px}
+.brandbox p{margin-top:4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#e7cf99}
+.tools{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.status{display:flex;align-items:center;gap:8px;padding:7px 13px;border:1px solid rgba(224,184,101,.35);border-radius:999px;font-size:12.5px;background:rgba(255,255,255,.06)}
+.dot{width:8px;height:8px;border-radius:50%;background:#9aa3bd}
+.dot.ok{background:#6fd49a;box-shadow:0 0 0 3px rgba(111,212,154,.2)}
+.dot.err{background:#ff9a7a;box-shadow:0 0 0 3px rgba(255,154,122,.22)}
+.dot.load{background:var(--gold2);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.upd{font-size:12.5px;color:#cfd6ea}
+.upd b{color:#fff;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:10px;padding:9px 16px;font-weight:600;font-size:13px;background:var(--goldline);color:#2a1d05;transition:filter .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn svg{width:15px;height:15px}
+.btn.spin svg{animation:rot .9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.lead{margin-top:34px;max-width:640px}
+.lead h2{font:600 26px/1.2 var(--serif);color:#fff}
+.lead p{margin-top:6px;color:#cfd6ea;font-size:14px}
+
+/* ---------- KPI ---------- */
+.kpis{margin-top:-52px;position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-radius:16px;box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden}
+.kpi{padding:20px 22px 18px;position:relative;min-width:0}
+.kpi+.kpi{border-left:1px solid var(--line)}
+.kpi::before{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:var(--goldline);opacity:.9}
+.kpi .l{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .l svg{width:18px;height:18px;color:var(--gold)}
+.kpi .v{margin-top:8px;font:700 36px/1.05 var(--serif);color:var(--night);letter-spacing:.2px;white-space:nowrap}
+.kpi .s{margin-top:5px;font-size:12.5px;color:var(--muted)}
+
+/* ---------- Filter ---------- */
+.filters{margin-top:18px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fg label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fg input,.fg select{height:38px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 10px;min-width:150px;max-width:100%}
+.fg input[type=date]{min-width:140px}
+.fg input:focus,.fg select:focus,.search input:focus{outline:2px solid rgba(184,137,58,.45);border-color:var(--gold)}
+.fx{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12.5px}
+.link{background:none;border:1px solid var(--line);border-radius:9px;height:38px;padding:0 14px;cursor:pointer;color:var(--night);font-weight:600;background:#fff}
+.link:hover{border-color:var(--gold)}
+
+/* ---------- Panel ---------- */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px 18px;min-width:0}
+.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}.c12{grid-column:span 12}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.ph h3{font:700 21px/1.15 var(--serif);color:var(--night);display:flex;align-items:center;gap:10px}
+.ph h3::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--goldline)}
+.ph .sub{margin-top:3px;font-size:12.5px;color:var(--muted);padding-left:14px}
+.seg{display:flex;background:var(--soft);border-radius:9px;padding:3px;flex:none}
+.seg button{border:0;background:none;cursor:pointer;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--night);box-shadow:0 1px 3px rgba(20,32,70,.15)}
+.cv{position:relative;height:270px}
+.cv.s{height:200px}.cv.t{height:300px}
+.split{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center}
+.split .cv{height:150px}
+.li{margin:0 0 9px}
+.li .t{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.li .t b{font-weight:600;display:flex;align-items:center;gap:7px;min-width:0}
+.li .t span{color:var(--muted);white-space:nowrap}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.bar{height:5px;border-radius:3px;background:var(--soft);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+
+/* ---------- Acara ---------- */
+.evsum{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:-2px 0 10px}
+.evsum b{color:var(--night);font:700 19px var(--serif);margin-right:4px}
+.evl{max-height:290px;overflow:auto;padding-right:4px}
+.ev{padding:9px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev .a{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.ev .a b{font-weight:600}
+.ev .a span{white-space:nowrap;color:var(--muted);font-size:12px}
+.ev .m{font-size:11.5px;color:var(--muted);margin:1px 0 4px}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--maroon);font-size:11px;font-weight:600;margin-right:6px}
+
+/* ---------- Kepuasan ---------- */
+.sat{display:grid;grid-template-columns:200px 1fr 1fr 1.2fr;gap:26px;align-items:start}
+.score{text-align:center;padding:6px 0}
+.score .n{font:700 58px/1 var(--serif);color:var(--night)}
+.stars{color:var(--gold);letter-spacing:2px;font-size:17px;margin-top:2px}
+.score p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.pill{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:999px;background:#e8f0e2;color:#35692f;font-size:12px;font-weight:600}
+.sat h4{margin:0 0 10px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rb{display:grid;grid-template-columns:26px 1fr 34px;align-items:center;gap:8px;font-size:12.5px;margin-bottom:7px}
+.rb .bar{margin:0;height:8px}
+.rb em{font-style:normal;color:var(--muted);text-align:right}
+.quote{border-left:3px solid var(--gold2);padding:2px 0 2px 12px;margin-bottom:11px}
+.quote p{font:600 15.5px/1.35 var(--serif);color:var(--night)}
+.quote small{display:block;margin-top:2px;color:var(--muted);font-size:11.5px}
+
+/* ---------- Tabel ---------- */
+.ptools{display:flex;gap:12px;align-items:center}
+.search input{height:36px;border:1px solid var(--line);border-radius:9px;padding:0 12px;width:230px;max-width:100%;background:#fff}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+#tx-table{min-width:880px}
+th{background:linear-gradient(100deg,#142046,#2a2f63 70%,#4b2440);color:#f4e7c3;text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:11px 12px;white-space:nowrap;position:sticky;top:0}
+td{padding:9px 12px;border-top:1px solid var(--line);white-space:nowrap}
+td:nth-child(5),td:nth-child(6){white-space:normal;min-width:130px}
+tbody tr:nth-child(even) td{background:#fbf6e9}
+tbody tr:hover td{background:#f5ecd3}
+.r{text-align:right}
+.more{display:flex;justify-content:center;margin-top:12px}
+.empty{margin:40px 0;text-align:center;padding:60px 20px;background:var(--card);border:1px dashed var(--sand);border-radius:16px}
+.empty h3{font:700 26px var(--serif);color:var(--night)}
+.empty p{margin-top:6px;color:var(--muted)}
+.foot{margin:26px 0 30px;text-align:center;font-size:12px;color:var(--muted)}
+.foot::before{content:"";display:block;height:10px;margin:0 auto 12px;max-width:360px;opacity:.7;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 10L10 0l10 10z' fill='%23b8893a'/%3E%3C/svg%3E") repeat-x center}
+
+@media(max-width:1020px){
+  .c8,.c7,.c6,.c5,.c4{grid-column:span 12}
+  .kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--line)}
+  .sat{grid-template-columns:1fr 1fr}.score{grid-column:1/-1}
+}
+@media(max-width:640px){
+  .wrap{padding:0 14px}
+  .hero{padding-bottom:76px}
+  .brandbox h1{font-size:24px}.logo{width:46px;height:46px}
+  .lead h2{font-size:22px}
+  .kpi{padding:15px 15px 13px}.kpi .v{font-size:26px}
+  .filters{gap:10px;padding:12px}.fg{flex:1 1 140px}.fg input,.fg select{min-width:0;width:100%}.fx{margin-left:0;width:100%;justify-content:space-between}
+  .panel{padding:15px 14px}
+  .split{grid-template-columns:1fr}.split .cv{height:170px}
+  .sat{grid-template-columns:1fr}
+  .ph{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="top">
+      <div class="brandbox">
+        <svg class="logo" viewBox="0 0 48 48" role="img" aria-label="Logo Nusantara Museum Insights">
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0cd7e"/><stop offset="1" stop-color="#b8893a"/></linearGradient></defs>
+          <circle cx="24" cy="24" r="22.5" fill="#142046" stroke="url(#lg)" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="19" fill="none" stroke="#b8893a" stroke-opacity=".45" stroke-width=".7" stroke-dasharray="1.2 2.4"/>
+          <path d="M24 8.5l6 6.5H18z" fill="url(#lg)"/>
+          <path d="M24 13.5l10.5 10H13.5z" fill="url(#lg)" opacity=".92"/>
+          <path d="M24 19l14 11H10z" fill="url(#lg)" opacity=".8"/>
+          <rect x="14" y="31" width="3.2" height="8" fill="url(#lg)"/><rect x="22.4" y="31" width="3.2" height="8" fill="url(#lg)"/><rect x="30.8" y="31" width="3.2" height="8" fill="url(#lg)"/>
+          <rect x="11" y="39.5" width="26" height="2.2" fill="url(#lg)"/>
+        </svg>
+        <div><h1 id="brand">Nusantara Museum Insights</h1><p>Pemantauan Pengunjung &amp; Program Budaya</p></div>
+      </div>
+      <div class="tools">
+        <div class="status"><i id="dot" class="dot load"></i><span id="state">Memuat…</span></div>
+        <div class="upd">Last Updated: <b id="updated">–</b></div>
+        <button class="btn" id="refresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 4v7h-7"/></svg>Refresh Data</button>
+      </div>
+    </div>
+    <div class="lead"><h2>Ringkasan Kunjungan</h2><p id="rangeinfo">Menyiapkan data kunjungan…</p></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="empty" class="empty"><h3 id="eTitle">Memuat data</h3><p id="eText">Mohon tunggu sebentar.</p></div>
+
+  <div id="board" hidden>
+    <section class="kpis" aria-label="Ringkasan utama">
+      <div class="kpi"><div class="l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.4-3.4 2.8-5.4 6-5.4s5.6 2 6 5.4"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14.4c2.3.2 3.8 1.8 4.1 4.6"/></svg>Total Pengunjung</div><div class="v" id="k-vis">0</div><div class="s" id="k-vis-s"></div></div>
+      <div class="kpi"><div class="l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2.4"/></svg>Tiket Terjual</div><div class="v" id="k-paid">0</div><div class="s" id="k-paid-s"></div></div>
+      <div class="kpi"><div class="l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 15.5V8.5h3.2a2 2 0 0 1 0 4H8.5m3.2 0 3 3"/></svg>Pendapatan Tiket</div><div class="v" id="k-rev">Rp 0</div><div class="s" id="k-rev-s"></div></div>
+      <div class="kpi"><div class="l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Rata-rata Harian</div><div class="v" id="k-avg">0</div><div class="s" id="k-avg-s"></div></div>
+    </section>
+
+    <section class="filters" aria-label="Filter">
+      <div class="fg"><label for="from">Dari tanggal</label><input type="date" id="from"></div>
+      <div class="fg"><label for="to">Sampai tanggal</label><input type="date" id="to"></div>
+      <div class="fg"><label for="tick">Jenis tiket</label><select id="tick"></select></div>
+      <div class="fg"><label for="area">Galeri / area</label><select id="area"></select></div>
+      <div class="fx"><button class="link" id="reset" type="button">Atur ulang</button></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel c7"><div class="ph"><div><h3>Tren Pengunjung</h3><div class="sub" id="trend-sub"></div></div>
+        <div class="seg" id="gran"><button data-g="day" class="on">Harian</button><button data-g="week">Mingguan</button><button data-g="month">Bulanan</button></div></div>
+        <div class="cv t"><canvas id="c-trend"></canvas></div></section>
+      <section class="panel c5"><div class="ph"><div><h3>Jenis Tiket</h3><div class="sub" id="tk-top"></div></div></div>
+        <div class="split"><div class="cv"><canvas id="c-tick"></canvas></div><div id="tk-list"></div></div></section>
+
+      <section class="panel c6"><div class="ph"><div><h3>Galeri &amp; Area</h3><div class="sub" id="ga-top"></div></div></div>
+        <div class="cv"><canvas id="c-gal"></canvas></div></section>
+      <section class="panel c6"><div class="ph"><div><h3>Asal Pengunjung</h3><div class="sub" id="or-top"></div></div></div>
+        <div class="split"><div class="cv"><canvas id="c-org"></canvas></div><div id="or-list"></div></div></section>
+
+      <section class="panel c6"><div class="ph"><div><h3>Performa Pameran</h3><div class="sub" id="ex-top"></div></div></div>
+        <div class="cv"><canvas id="c-exh"></canvas></div></section>
+      <section class="panel c6"><div class="ph"><div><h3>Acara &amp; Program</h3><div class="sub">Kehadiran dibanding kapasitas</div></div></div>
+        <div class="evsum" id="ev-sum"></div><div class="evl" id="ev-list"></div></section>
+
+      <section class="panel c12"><div class="ph"><div><h3>Ulasan &amp; Kepuasan Pengunjung</h3><div class="sub" id="fb-sub"></div></div></div>
+        <div class="sat">
+          <div class="score"><div class="n" id="fb-avg">–</div><div class="stars" id="fb-stars"></div><p id="fb-n"></p><span class="pill" id="fb-pill"></span></div>
+          <div><h4>Sebaran penilaian</h4><div id="fb-dist"></div></div>
+          <div><h4>Nilai per aspek</h4><div id="fb-asp"></div></div>
+          <div><h4>Ulasan terbaru</h4><div id="fb-quotes"></div></div>
+        </div></section>
+
+      <section class="panel c12"><div class="ph"><div><h3>Data Kunjungan</h3><div class="sub" id="tx-count"></div></div>
+        <div class="ptools search"><input id="q" type="search" placeholder="Cari no. kunjungan, tiket, galeri…" aria-label="Cari kunjungan"></div></div>
+        <div class="tw"><table id="tx-table"><thead><tr><th>Tanggal</th><th>No. Kunjungan</th><th>Jenis Tiket</th><th class="r">Pengunjung</th><th>Galeri / Area</th><th>Pameran</th><th>Sumber Pemesanan</th><th class="r">Pendapatan</th></tr></thead><tbody id="tb-tx"></tbody></table></div>
+        <div class="more"><button class="link" id="more" type="button" hidden>Tampilkan lebih banyak</button></div></section>
+    </div>
+  </div>
+  <footer class="foot">Nusantara Museum Insights · Data kunjungan diperbarui otomatis setiap 10 detik</footer>
+</main>
+
+<script>
+/* =====================================================================
+ * 1. PENGATURAN (nilai berasal dari blok KONFIGURASI di bagian atas file)
+ * ===================================================================== */
+const CFG = Object.assign({ SHEET_URL: '', REFRESH_SECONDS: 10, BRAND: '' }, window.APP_CONFIG || {});
+CFG.SHEETS = Object.assign({ Visitors: 'Visitors', Tickets: 'Tickets', Galleries: 'Galleries', Exhibitions: 'Exhibitions', Events: 'Events', Feedback: 'Visitor Feedback' }, CFG.SHEETS || {});
+
+// kunci, nama kolom di Google Sheets, tipe (s=teks, d=tanggal, n=angka; tanda ? = boleh kosong)
+const SCHEMA = {
+  Visitors:    [['id', 'Visit ID', 's'], ['date', 'Visit Date', 'd'], ['tid', 'Ticket ID', 's'], ['gid', 'Gallery ID', 's'], ['eid', 'Exhibition ID', 's?'], ['count', 'Visitor Count', 'n'], ['paid', 'Paid Tickets', 'n'], ['price', 'Ticket Price', 'n'], ['rev', 'Total Revenue', 'n?'], ['source', 'Booking Source', 's'], ['origin', 'Visitor Origin', 's']],
+  Tickets:     [['id', 'Ticket ID', 's'], ['name', 'Ticket Name', 's'], ['price', 'Ticket Price', 'n'], ['desc', 'Ticket Description', 's?']],
+  Galleries:   [['id', 'Gallery ID', 's'], ['name', 'Gallery Name', 's'], ['area', 'Area', 's?'], ['cap', 'Capacity', 'n?'], ['desc', 'Gallery Description', 's?']],
+  Exhibitions: [['id', 'Exhibition ID', 's'], ['name', 'Exhibition Name', 's'], ['gid', 'Gallery ID', 's'], ['start', 'Start Date', 'd'], ['end', 'End Date', 'd'], ['desc', 'Exhibition Theme', 's?']],
+  Events:      [['id', 'Event ID', 's'], ['name', 'Event Name', 's'], ['type', 'Event Type', 's'], ['date', 'Event Date', 'd'], ['gid', 'Gallery ID', 's'], ['cap', 'Capacity', 'n'], ['reg', 'Registered', 'n'], ['att', 'Attended', 'n'], ['fee', 'Fee per Person', 'n'], ['rev', 'Event Revenue', 'n?']],
+  Feedback:    [['id', 'Feedback ID', 's'], ['vid', 'Visit ID', 's'], ['date', 'Feedback Date', 'd'], ['rating', 'Rating', 'n'], ['aspect', 'Aspect', 's'], ['comment', 'Comment', 's?']]
+};
+const RULES = {
+  Visitors: r => r.count > 0 && r.paid >= 0 && r.paid <= r.count && r.price >= 0,
+  Tickets: r => r.price >= 0,
+  Events: r => r.cap > 0 && r.att >= 0 && r.att <= r.cap && r.fee >= 0,
+  Feedback: r => Number.isInteger(r.rating) && r.rating >= 1 && r.rating <= 5
+};
+const SHEET_KEYS = Object.keys(SCHEMA);
+
+/* =====================================================================
+ * 2. PENGAMBILAN DATA (Google Sheets Visualization API, tanpa API key)
+ * ===================================================================== */
+const pad = n => String(n).padStart(2, '0');
+const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function extractSheetId(text) {
+  const s = String(text || '').trim();
+  if (!s) return null;
+  const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{15,})/) || s.match(/^([a-zA-Z0-9_-]{25,})$/);
+  return m && !/\/spreadsheets\/d\/e\//.test(s) ? m[1] : null;
+}
+
+async function fetchSheet(id, tab) {
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(tab) + '&_=' + Date.now();   // _= mencegah cache
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  let text;
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    text = await res.text();
+  } finally { clearTimeout(timer); }
+  const m = text.match(/setResponse\(([\s\S]*)\)\s*;?\s*$/);
+  if (!m) throw new Error('Respons bukan data spreadsheet (akses belum dibuka?)');
+  const obj = JSON.parse(m[1]);
+  if (obj.status === 'error') throw new Error('Tab "' + tab + '" tidak dapat dibaca');
+  const t = obj.table;
+  let headers = t.cols.map(c => c.label || '');
+  let rows = t.rows.map(r => t.cols.map((_, i) => (r.c && r.c[i] ? r.c[i].v : null)));
+  if (headers.every(h => !h.trim()) && rows.length) { headers = rows[0].map(v => (v == null ? '' : String(v))); rows = rows.slice(1); }
+  return { headers, rows, text };
+}
+
+/* =====================================================================
+ * 3. VALIDASI + KONVERSI TIPE
+ * ===================================================================== */
+function toDate(v) {
+  if (typeof v !== 'string') return null;
+  let m = v.match(/^Date\((\d+),\s*(\d+),\s*(\d+)/);                  // format tanggal Google Sheets (bulan mulai dari 0)
+  if (m) return m[1] + '-' + pad(+m[2] + 1) + '-' + pad(+m[3]);
+  m = v.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
+  return null;
+}
+function toNum(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  if (typeof v === 'string' && v.trim() !== '') {
+    let s = v.trim().replace(/^Rp\.?\s*/i, '').replace(/\s/g, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); else s = s.replace(',', '.');
+    const n = Number(s); return isFinite(n) ? n : null;
+  }
+  return null;
+}
+function buildSheet(key, raw) {
+  const schema = SCHEMA[key], idx = {};
+  raw.headers.forEach((h, i) => { if (!(norm(h) in idx)) idx[norm(h)] = i; });
+  const missing = schema.filter(c => !(norm(c[1]) in idx)).map(c => c[1]);
+  if (missing.length) throw new Error('Tab "' + CFG.SHEETS[key] + '": kolom ' + missing.join(', ') + ' tidak ditemukan');
+  const rows = []; let skipped = 0;
+  raw.rows.forEach(r => {
+    if (r.every(v => v == null || String(v).trim() === '')) return;
+    const o = {}; let ok = true;
+    for (const [k, header, t] of schema) {
+      const optional = t.endsWith('?'), type = t[0], v = r[idx[norm(header)]];
+      const x = type === 'd' ? toDate(v) : type === 'n' ? toNum(v) : (v == null ? '' : String(v).trim());
+      if (x === null || x === '') { if (!optional) { ok = false; break; } o[k] = null; continue; }
+      o[k] = x;
+    }
+    if (ok && RULES[key] && !RULES[key](o)) ok = false;
+    if (ok) rows.push(o); else skipped++;
+  });
+  return { rows, skipped };
+}
+
+/* =====================================================================
+ * 4. PERHITUNGAN (tanpa akses DOM)
+ *    Pendapatan tiket = Σ (Paid Tickets × Ticket Price); pengunjung = Σ Visitor Count
+ * ===================================================================== */
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const ymd = d => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+const addDays = (s, n) => { const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+const weekStart = s => { const d = parse(s); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return ymd(d); };   // Senin
+const monthStart = s => s.slice(0, 7) + '-01';
+const nextMonth = s => { let [y, m] = s.split('-').map(Number); if (++m > 12) { m = 1; y++; } return y + '-' + pad(m) + '-01'; };
+const BUCKET = {
+  week:  { key: weekStart, next: s => addDays(s, 7) },
+  month: { key: monthStart, next: nextMonth }
+};
+const ORIGIN_ORDER = ['Jakarta', 'Bodetabek', 'Luar Jabodetabek', 'Mancanegara'];
+
+function prepare(data) {
+  const uniq = (rows, label) => { const seen = new Set(), out = []; let dup = 0; rows.forEach(r => { if (seen.has(r.id)) dup++; else { seen.add(r.id); out.push(r); } }); if (dup) console.warn(dup + ' baris ID ganda di ' + label + ' diabaikan'); return out; };
+  const tks = uniq(data.Tickets, 'Tickets'), gals = uniq(data.Galleries, 'Galleries'), exhs = uniq(data.Exhibitions, 'Exhibitions');
+  const tMap = new Map(tks.map(t => [t.id, t])), gMap = new Map(gals.map(g => [g.id, g])), eMap = new Map(exhs.map(e => [e.id, e]));
+  let bad = 0;
+  const vis = [];
+  uniq(data.Visitors, 'Visitors').forEach(v => {
+    const t = tMap.get(v.tid), g = gMap.get(v.gid);
+    if (!t || !g) { bad++; return; }
+    const e = v.eid ? eMap.get(v.eid) : null;
+    vis.push({ id: v.id, date: v.date, ticket: t.name, tid: t.id, gallery: g.name, gid: g.id, exh: e ? e.name : '', eid: e ? e.id : '', count: v.count, paid: v.paid, free: v.count - v.paid, price: v.price, rev: v.paid * v.price, source: v.source, origin: v.origin });
+  });
+  if (bad) console.warn(bad + ' kunjungan dengan Ticket/Gallery ID yang tidak dikenal tidak dihitung');
+  const vMap = new Map(vis.map(v => [v.id, v]));
+  const fb = [];
+  uniq(data.Feedback, 'Visitor Feedback').forEach(f => { const v = vMap.get(f.vid); if (v) fb.push({ id: f.id, vid: f.vid, date: v.date, rating: f.rating, aspect: f.aspect, comment: f.comment || '', v }); });
+  const events = [];
+  uniq(data.Events, 'Events').forEach(e => { const g = gMap.get(e.gid); if (g) events.push({ id: e.id, name: e.name, type: e.type, date: e.date, gid: g.id, gallery: g.name, cap: e.cap, att: e.att, fee: e.fee, rev: e.att * e.fee }); });
+  const exhibitions = exhs.filter(e => gMap.has(e.gid)).map(e => ({ id: e.id, name: e.name, gid: e.gid, gallery: gMap.get(e.gid).name, start: e.start, end: e.end }));
+  const dates = [...new Set(vis.map(v => v.date))].sort();
+  const origins = [...new Set(vis.map(v => v.origin))].sort((a, b) => { const x = ORIGIN_ORDER.indexOf(a), y = ORIGIN_ORDER.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a.localeCompare(b); });
+  return { vis, fb, events, exhibitions, tickets: tks.map(t => t.name), galleries: gals.map(g => g.name), origins, openDates: dates, minDate: dates[0] || null, maxDate: dates[dates.length - 1] || null };
+}
+
+function groupBy(rows, keyOf, names) {
+  const m = new Map(names.map(n => [n, { label: n, visitors: 0, paid: 0, rev: 0, n: 0 }]));
+  rows.forEach(r => { const k = keyOf(r); if (!m.has(k)) m.set(k, { label: k, visitors: 0, paid: 0, rev: 0, n: 0 }); const o = m.get(k); o.visitors += r.count; o.paid += r.paid; o.rev += r.rev; o.n++; });
+  return [...m.values()];
+}
+function trendOf(rows, from, to, g, open) {
+  const m = new Map();
+  const mk = k => ({ label: k, visitors: 0, rev: 0, n: 0 });
+  if (g === 'day') open.forEach(d => { if (d >= from && d <= to) m.set(d, mk(d)); });     // hanya hari buka
+  else { const B = BUCKET[g]; for (let k = B.key(from); k <= to; k = B.next(k)) m.set(k, mk(k)); }
+  rows.forEach(r => { const o = m.get(g === 'day' ? r.date : BUCKET[g].key(r.date)); if (o) { o.visitors += r.count; o.rev += r.rev; o.n++; } });
+  return [...m.values()];
+}
+
+function calculate(model, f) {
+  const rows = model.vis.filter(v => v.date >= f.from && v.date <= f.to && (f.tick === 'ALL' || v.ticket === f.tick) && (f.area === 'ALL' || v.gallery === f.area));
+  const ids = new Set(rows.map(v => v.id));
+  const visitors = sum(rows, v => v.count), paid = sum(rows, v => v.paid), rev = sum(rows, v => v.rev);
+  const openDays = model.openDates.filter(d => d >= f.from && d <= f.to).length;
+  const share = a => a.map(x => Object.assign(x, { share: visitors ? x.visitors / visitors * 100 : 0 }));
+  const byTicket = share(groupBy(rows, v => v.ticket, model.tickets)).sort((a, b) => b.visitors - a.visitors || a.label.localeCompare(b.label));
+  const byGallery = share(groupBy(rows, v => v.gallery, model.galleries)).sort((a, b) => b.visitors - a.visitors || a.label.localeCompare(b.label));
+  const byOrigin = share(groupBy(rows, v => v.origin, model.origins));
+  // ulasan: hanya yang terkait kunjungan terfilter
+  const fb = model.fb.filter(x => ids.has(x.vid));
+  const ratingSum = sum(fb, x => x.rating);
+  const dist = [5, 4, 3, 2, 1].map(r => ({ r, n: fb.filter(x => x.rating === r).length }));
+  const aspMap = new Map(); fb.forEach(x => { const o = aspMap.get(x.aspect) || { label: x.aspect, s: 0, n: 0 }; o.s += x.rating; o.n++; aspMap.set(x.aspect, o); });
+  const aspects = [...aspMap.values()].map(a => ({ label: a.label, avg: a.s / a.n, n: a.n })).sort((a, b) => b.avg - a.avg || a.label.localeCompare(b.label));
+  const quotes = fb.filter(x => x.comment).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 3);
+  // pameran: yang periodenya beririsan dengan rentang tanggal (dan sesuai area)
+  const exhibitions = model.exhibitions.filter(e => e.start <= f.to && e.end >= f.from && (f.area === 'ALL' || e.gallery === f.area)).map(e => {
+    const er = rows.filter(v => v.eid === e.id), ef = fb.filter(x => x.v.eid === e.id);
+    return { label: e.name, gallery: e.gallery, visitors: sum(er, v => v.count), rev: sum(er, v => v.rev), rating: ef.length ? sum(ef, x => x.rating) / ef.length : null, rn: ef.length };
+  }).sort((a, b) => b.visitors - a.visitors || a.label.localeCompare(b.label));
+  // acara: berdasarkan tanggal acara & area (jenis tiket tidak berlaku)
+  const events = model.events.filter(e => e.date >= f.from && e.date <= f.to && (f.area === 'ALL' || e.gallery === f.area)).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  const sorted = rows.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  return { f, rows: sorted, kpi: { visitors, paid, free: visitors - paid, rev, bookings: rows.length, openDays, avg: openDays ? visitors / openDays : 0 },
+    byTicket, byGallery, byOrigin, exhibitions, events, trend: { day: trendOf(rows, f.from, f.to, 'day', model.openDates), week: trendOf(rows, f.from, f.to, 'week'), month: trendOf(rows, f.from, f.to, 'month') },
+    fb: { n: fb.length, avg: fb.length ? ratingSum / fb.length : 0, happy: fb.length ? fb.filter(x => x.rating >= 4).length / fb.length * 100 : 0, dist, aspects, quotes } };
+}
+
+/* =====================================================================
+ * 5. TAMPILAN
+ * ===================================================================== */
+const $ = id => document.getElementById(id);
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const dLabel = s => +s.slice(8, 10) + ' ' + BULAN[+s.slice(5, 7) - 1];
+const dateLabel = s => dLabel(s) + ' ' + s.slice(0, 4);
+const nf = new Intl.NumberFormat('id-ID');
+const int = n => nf.format(Math.round(n));
+const rp = n => (n == null ? '-' : 'Rp ' + nf.format(Math.round(n)));
+const pct = n => n.toFixed(1).replace('.', ',') + '%';
+const dec1 = n => n.toFixed(1).replace('.', ',');
+const short = v => (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt' : Math.abs(v) >= 1e3 ? int(v / 1e3) + ' rb' : int(v));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const set = (id, v) => { $(id).textContent = v; };
+
+const NIGHT = '#1d2d5c', GOLD = '#b8893a', TERRA = '#b85c38', MAROON = '#6b1f2a';
+const PAL = ['#1d2d5c', '#b8893a', '#b85c38', '#6b1f2a', '#6f86b8', '#d9c39a'];
+let model = null, result = null, gran = 'day', shown = 40;
+const colorBy = list => n => PAL[Math.max(0, list.indexOf(n)) % PAL.length];
+
+const charts = {};
+const noData = { id: 'noData', afterDraw(c) { if (c.data.datasets.some(d => d.data.some(v => v))) return; const a = c.chartArea, x = c.ctx; x.save(); x.fillStyle = '#9a9378'; x.textAlign = 'center'; x.font = '13px system-ui'; x.fillText('Tidak ada data pada filter ini', (a.left + a.right) / 2, (a.top + a.bottom) / 2); x.restore(); } };
+function drawChart(id, cfg) {
+  if (!window.Chart) return;
+  if (charts[id]) charts[id].destroy();
+  cfg.plugins = (cfg.plugins || []).concat([noData]);
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false }, cfg.options);
+  charts[id] = new Chart($(id), cfg);
+}
+const gridY = { color: '#efe6cf' };
+const areaFill = ctx => { const a = ctx.chart.chartArea; if (!a) return 'rgba(184,137,58,.2)'; const g = ctx.chart.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, 'rgba(184,137,58,.38)'); g.addColorStop(1, 'rgba(184,137,58,.02)'); return g; };
+const listHtml = (arr, colorOf, sub) => arr.map(c => '<div class="li"><div class="t"><b><i class="sw" style="background:' + colorOf(c.label) + '"></i>' + esc(c.label) + '</b><span>' + sub(c) + '</span></div><div class="bar"><i style="width:' + c.share + '%;background:' + colorOf(c.label) + '"></i></div></div>').join('');
+const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+const starStr = r => '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
+
+function renderTrend() {
+  if (!result) return;
+  const t = result.trend[gran];
+  const lbl = t.map(x => gran === 'month' ? BULAN[+x.label.slice(5, 7) - 1] + ' ' + x.label.slice(0, 4) : dLabel(x.label));
+  set('trend-sub', gran === 'day' ? 'Pengunjung per hari buka' : gran === 'week' ? 'Pengunjung per minggu (mulai Senin)' : 'Pengunjung per bulan');
+  drawChart('c-trend', { type: 'line',
+    data: { labels: lbl, datasets: [{ label: 'Pengunjung', data: t.map(x => x.visitors), borderColor: TERRA, backgroundColor: areaFill, fill: true, tension: .28, borderWidth: 2.6, pointRadius: gran === 'day' ? 0 : 4, pointHoverRadius: 6, pointBackgroundColor: '#fffdf7', pointBorderColor: TERRA, pointBorderWidth: 2 }] },
+    options: { interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: {
+      title: c => (gran === 'week' ? 'Minggu ' : '') + c[0].label,
+      label: c => [' ' + int(c.parsed.y) + ' pengunjung', ' ' + int(t[c.dataIndex].n) + ' kunjungan · ' + rp(t[c.dataIndex].rev)] } } },
+      scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0 } }, y: { beginAtZero: true, grid: gridY, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 6 } } } } });
+}
+
+function render(r) {
+  result = r;
+  const f = r.f, k = r.kpi;
+  set('rangeinfo', 'Periode ' + dateLabel(f.from) + ' – ' + dateLabel(f.to) + ' · ' + int(k.openDays) + ' hari buka');
+  set('k-vis', int(k.visitors)); set('k-vis-s', int(k.bookings) + ' kunjungan tercatat');
+  set('k-paid', int(k.paid)); set('k-paid-s', k.free ? int(k.free) + ' masuk gratis (balita/pendamping)' : 'seluruh pengunjung bertiket');
+  set('k-rev', rp(k.rev)); set('k-rev-s', k.paid ? 'rata-rata ' + rp(k.rev / k.paid) + ' per tiket' : 'belum ada penjualan tiket');
+  set('k-avg', int(k.avg)); set('k-avg-s', 'pengunjung per hari buka');
+
+  renderTrend();
+
+  const tc = colorBy(model.tickets), oc = colorBy(model.origins);
+  set('tk-top', r.byTicket[0] && r.byTicket[0].visitors ? 'Terbanyak: ' + r.byTicket[0].label + ' (' + pct(r.byTicket[0].share) + ')' : '');
+  drawChart('c-tick', { type: 'doughnut', data: { labels: r.byTicket.map(x => x.label), datasets: [{ data: r.byTicket.map(x => x.visitors), backgroundColor: r.byTicket.map(x => tc(x.label)), borderColor: '#fffdf7', borderWidth: 2 }] },
+    options: { cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + int(c.parsed) + ' pengunjung (' + pct(r.byTicket[c.dataIndex].share) + ')' } } } } });
+  $('tk-list').innerHTML = listHtml(r.byTicket, tc, c => int(c.visitors) + ' · ' + short(c.rev));
+
+  set('ga-top', r.byGallery[0] && r.byGallery[0].visitors ? 'Terpadat: ' + r.byGallery[0].label + ' (' + int(r.byGallery[0].visitors) + ')' : '');
+  drawChart('c-gal', { type: 'bar', data: { labels: r.byGallery.map(x => x.label), datasets: [{ label: 'Pengunjung', data: r.byGallery.map(x => x.visitors), backgroundColor: r.byGallery.map((_, i) => i === 0 ? MAROON : i < 3 ? NIGHT : '#6f86b8'), borderRadius: 5, maxBarThickness: 22 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const x = r.byGallery[c.dataIndex]; return [' ' + int(x.visitors) + ' pengunjung (' + pct(x.share) + ')', ' ' + rp(x.rev)]; } } } },
+      scales: { x: { beginAtZero: true, grid: gridY, border: { display: false }, ticks: { precision: 0 }, grace: '6%' }, y: { grid: { display: false }, ticks: { callback(v) { return trunc(this.getLabelForValue(v), 26); } } } } } });
+
+  const topO = r.byOrigin.slice().sort((a, b) => b.visitors - a.visitors)[0];
+  set('or-top', topO && topO.visitors ? 'Terbanyak: ' + topO.label + ' (' + pct(topO.share) + ')' : '');
+  drawChart('c-org', { type: 'doughnut', data: { labels: r.byOrigin.map(x => x.label), datasets: [{ data: r.byOrigin.map(x => x.visitors), backgroundColor: r.byOrigin.map(x => oc(x.label)), borderColor: '#fffdf7', borderWidth: 2 }] },
+    options: { cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + int(c.parsed) + ' pengunjung (' + pct(r.byOrigin[c.dataIndex].share) + ')' } } } } });
+  $('or-list').innerHTML = listHtml(r.byOrigin, oc, c => int(c.visitors) + ' · ' + pct(c.share));
+
+  const ex = r.exhibitions;
+  set('ex-top', ex.length && ex[0].visitors ? 'Terpopuler: ' + ex[0].label + ' (' + int(ex[0].visitors) + ' pengunjung)' : (ex.length ? '' : 'Tidak ada pameran pada periode ini'));
+  drawChart('c-exh', { type: 'bar', data: { labels: ex.map(x => x.label), datasets: [{ label: 'Pengunjung', data: ex.map(x => x.visitors), backgroundColor: ex.map((_, i) => i === 0 ? GOLD : '#d9b574'), borderRadius: 5, maxBarThickness: 22 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const x = ex[c.dataIndex]; return [' ' + int(x.visitors) + ' pengunjung · ' + rp(x.rev), ' ' + (x.rating == null ? 'Belum ada ulasan' : 'Kepuasan ' + dec1(x.rating) + ' / 5 (' + x.rn + ' ulasan)')]; } } } },
+      scales: { x: { beginAtZero: true, grid: gridY, border: { display: false }, ticks: { precision: 0 }, grace: '6%' }, y: { grid: { display: false }, ticks: { callback(v) { return trunc(this.getLabelForValue(v), 28); } } } } } });
+
+  const ev = r.events, att = sum(ev, e => e.att), cap = sum(ev, e => e.cap);
+  $('ev-sum').innerHTML = '<span><b>' + int(ev.length) + '</b>acara</span><span><b>' + int(att) + '</b>peserta hadir</span><span><b>' + (cap ? int(att / cap * 100) + '%' : '–') + '</b>okupansi</span><span><b>' + short(sum(ev, e => e.rev)) + '</b>pendapatan acara</span>';
+  $('ev-list').innerHTML = ev.map(e => { const p = e.att / e.cap * 100; return '<div class="ev"><div class="a"><b>' + esc(e.name) + '</b><span>' + int(e.att) + ' / ' + int(e.cap) + '</span></div><div class="m"><span class="tag">' + esc(e.type) + '</span>' + dateLabel(e.date) + ' · ' + esc(e.gallery) + (e.fee ? ' · ' + rp(e.fee) : ' · Gratis') + '</div><div class="bar"><i style="width:' + Math.min(100, p) + '%;background:' + (p >= 85 ? MAROON : p >= 60 ? GOLD : '#6f86b8') + '"></i></div></div>'; }).join('')
+    || '<p style="color:var(--muted);padding:20px 0;text-align:center">Tidak ada acara pada periode ini</p>';
+
+  const b = r.fb;
+  set('fb-sub', b.n ? int(b.n) + ' ulasan dari pengunjung' : 'Belum ada ulasan pada filter ini');
+  set('fb-avg', b.n ? dec1(b.avg) : '–'); set('fb-stars', b.n ? starStr(b.avg) : ''); set('fb-n', b.n ? 'dari 5 · ' + int(b.n) + ' ulasan' : ''); set('fb-pill', b.n ? pct(b.happy) + ' puas (nilai 4–5)' : ''); $('fb-pill').hidden = !b.n;
+  const mx = Math.max(1, ...b.dist.map(d => d.n));
+  $('fb-dist').innerHTML = b.dist.map(d => '<div class="rb"><span>' + d.r + ' ★</span><div class="bar"><i style="width:' + d.n / mx * 100 + '%;background:' + (d.r >= 4 ? GOLD : d.r === 3 ? '#d9b574' : TERRA) + '"></i></div><em>' + int(d.n) + '</em></div>').join('');
+  $('fb-asp').innerHTML = b.aspects.map(a => '<div class="rb" style="grid-template-columns:78px 1fr 30px"><span>' + esc(a.label) + '</span><div class="bar"><i style="width:' + a.avg / 5 * 100 + '%;background:' + NIGHT + '"></i></div><em>' + dec1(a.avg) + '</em></div>').join('') || '<p style="color:var(--muted)">–</p>';
+  $('fb-quotes').innerHTML = b.quotes.map(q => '<div class="quote"><p>“' + esc(q.comment) + '”</p><small>' + '<span style="color:var(--gold)">' + starStr(q.rating) + '</span> · ' + esc(q.v.ticket) + ' · ' + dateLabel(q.date) + '</small></div>').join('') || '<p style="color:var(--muted)">Belum ada ulasan tertulis.</p>';
+
+  shown = 40; renderTable();
+}
+
+function renderTable() {
+  if (!result) return;
+  const q = $('q').value.trim().toLowerCase();
+  const rows = q ? result.rows.filter(v => v.id.toLowerCase().includes(q) || v.ticket.toLowerCase().includes(q) || v.gallery.toLowerCase().includes(q) || v.exh.toLowerCase().includes(q) || v.source.toLowerCase().includes(q)) : result.rows;
+  const part = rows.slice(0, shown);
+  set('tx-count', q ? int(rows.length) + ' dari ' + int(result.rows.length) + ' kunjungan' : int(rows.length) + ' kunjungan · terbaru di atas');
+  $('tb-tx').innerHTML = part.map(v => '<tr><td>' + dateLabel(v.date) + '</td><td>' + esc(v.id) + '</td><td>' + esc(v.ticket) + '</td><td class="r">' + int(v.count) + '</td><td>' + esc(v.gallery) + '</td><td>' + (v.exh ? esc(v.exh) : '<span style="color:#b0a98f">–</span>') + '</td><td>' + esc(v.source) + '</td><td class="r">' + rp(v.rev) + '</td></tr>').join('')
+    || '<tr><td colspan="8" style="text-align:center;color:#7a7566;padding:20px">Tidak ada kunjungan yang cocok</td></tr>';
+  $('more').hidden = rows.length <= shown;
+  $('more').textContent = 'Tampilkan lebih banyak (' + int(rows.length - part.length) + ' lagi)';
+}
+
+/* =====================================================================
+ * 6. KONTROL: koneksi, refresh otomatis, filter
+ * ===================================================================== */
+const app = { id: extractSheetId(CFG.SHEET_URL), data: {}, sigs: {}, loaded: {}, f: { from: null, to: null, tick: 'ALL', area: 'ALL' }, userRange: false, busy: false, lastAttempt: 0 };
+SHEET_KEYS.forEach(k => { app.data[k] = []; });
+
+const stamp = d => d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+function setState(kind, text) { $('dot').className = 'dot ' + kind; set('state', text); }
+function showEmpty(title, text) { $('empty').hidden = false; $('board').hidden = true; set('eTitle', title); set('eText', text); }
+
+async function loadData() {
+  if (!app.id || app.busy) return;                       // tidak menumpuk permintaan
+  app.busy = true; app.lastAttempt = Date.now();
+  $('refresh').classList.add('spin'); $('refresh').disabled = true;
+  if (!model) setState('load', 'Memuat…');
+  const failures = [];
+  const res = await Promise.all(SHEET_KEYS.map(async k => {
+    try { const raw = await fetchSheet(app.id, CFG.SHEETS[k]); return { k, raw, built: buildSheet(k, raw) }; }
+    catch (e) { return { k, error: e.message }; }
+  }));
+  let changed = false;
+  res.forEach(r => {
+    if (r.error) { failures.push(r.k + ': ' + r.error); return; }
+    app.loaded[r.k] = true;
+    if (r.built.skipped) console.warn('Tab ' + r.k + ': ' + r.built.skipped + ' baris tidak valid diabaikan');
+    if (app.sigs[r.k] !== r.raw.text) { app.sigs[r.k] = r.raw.text; app.data[r.k] = r.built.rows; changed = true; }   // data berubah -> hitung ulang
+  });
+  const ready = SHEET_KEYS.every(k => app.loaded[k]);
+  if (!failures.length) set('updated', stamp(new Date()));       // Last Updated hanya berubah jika pengambilan data berhasil
+  if (failures.length) console.warn('Gagal memuat data:', failures.join(' | '));
+  if (ready && (changed || !model)) {
+    model = prepare(app.data);
+    if (!app.userRange || !app.f.from || !app.f.to) { app.f.from = model.minDate; app.f.to = model.maxDate; app.userRange = false; }
+    if (app.f.tick !== 'ALL' && !model.tickets.includes(app.f.tick)) app.f.tick = 'ALL';
+    if (app.f.area !== 'ALL' && !model.galleries.includes(app.f.area)) app.f.area = 'ALL';
+    fillFilters(); update();
+  }
+  app.busy = false; $('refresh').classList.remove('spin'); $('refresh').disabled = false;
+  setState(failures.length ? 'err' : 'ok', failures.length ? 'Koneksi terputus' : 'Terhubung');
+  if (model && model.vis.length) { $('empty').hidden = true; $('board').hidden = false; }
+  else if (model) showEmpty('Belum ada data kunjungan', 'Data kunjungan akan tampil di sini setelah tercatat.');
+  else showEmpty('Data belum dapat dimuat', 'Mencoba kembali secara otomatis.');
+}
+
+function fillFilters() {
+  $('from').min = $('to').min = model.minDate; $('from').max = $('to').max = model.maxDate;
+  $('from').value = app.f.from; $('to').value = app.f.to;
+  const opts = (all, a) => '<option value="ALL">' + all + '</option>' + a.map(c => '<option>' + esc(c) + '</option>').join('');
+  $('tick').innerHTML = opts('Semua jenis tiket', model.tickets); $('area').innerHTML = opts('Semua galeri / area', model.galleries);
+  $('tick').value = app.f.tick; $('area').value = app.f.area;
+}
+function update() { if (model && model.vis.length) render(calculate(model, app.f)); else result = null; }
+function onDate(which) {
+  const v = $(which).value;
+  if (!v) { $(which).value = app.f[which]; return; }
+  app.f[which] = v; app.userRange = true;
+  if (app.f.from > app.f.to) { if (which === 'from') { app.f.to = v; $('to').value = v; } else { app.f.from = v; $('from').value = v; } }
+  update();
+}
+$('from').addEventListener('change', () => onDate('from'));
+$('to').addEventListener('change', () => onDate('to'));
+$('tick').addEventListener('change', e => { app.f.tick = e.target.value; update(); });
+$('area').addEventListener('change', e => { app.f.area = e.target.value; update(); });
+$('reset').addEventListener('click', () => { app.userRange = false; app.f.tick = app.f.area = 'ALL'; app.f.from = model.minDate; app.f.to = model.maxDate; fillFilters(); update(); });
+$('q').addEventListener('input', () => { shown = 40; renderTable(); });
+$('more').addEventListener('click', () => { shown += 60; renderTable(); });
+$('gran').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gran = b.dataset.g; [...$('gran').children].forEach(x => x.classList.toggle('on', x === b)); renderTrend(); });
+$('refresh').addEventListener('click', () => loadData());
+document.addEventListener('visibilitychange', () => { if (!document.hidden && app.id && Date.now() - app.lastAttempt >= CFG.REFRESH_SECONDS * 1000) loadData(); });
+
+(function init() {
+  set('brand', CFG.BRAND || 'Nusantara Museum Insights');
+  if (!app.id) {
+    console.warn('SHEET_URL belum diisi pada blok konfigurasi di bagian atas index.html');
+    setState('', 'Belum terhubung'); $('refresh').disabled = true;
+    showEmpty('Data belum tersedia', 'Dashboard akan tampil setelah sumber data terhubung.');
+    return;
+  }
+  loadData();
+  setInterval(() => { if (!document.hidden) loadData(); }, Math.max(5, +CFG.REFRESH_SECONDS || 10) * 1000);   // pembaruan otomatis (default 10 detik)
+})();
+</script>
+</body>
+</html>
